@@ -365,24 +365,10 @@
     .upgrade-level {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       color: #aaa;
       font-size: 14px;
-    }
-    
-    .level-bar {
-      flex: 1;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-      margin: 0 10px;
-      overflow: hidden;
-    }
-    
-    .level-progress {
-      height: 100%;
-      background: linear-gradient(to right, #f300ff, #7b00ff);
-      border-radius: 5px;
-      width: 60%;
+      margin-bottom: 15px;
     }
     
     .buy-btn {
@@ -411,90 +397,6 @@
       background: #555;
       box-shadow: none;
       cursor: not-allowed;
-    }
-    
-    .fracture-gate {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 90;
-      padding: 20px;
-    }
-    
-    .gate-options {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      max-width: 400px;
-      gap: 20px;
-      margin-top: 30px;
-    }
-    
-    .gate-option {
-      background: rgba(20, 20, 40, 0.8);
-      border-radius: 20px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-    }
-    
-    .gate-option:active {
-      transform: scale(0.98);
-    }
-    
-    .gate-option.safe {
-      border-color: #00a2ff;
-    }
-    
-    .gate-option.fracture {
-      border-color: #f300ff;
-    }
-    
-    .gate-option h3 {
-      font-size: 22px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .gate-option.safe h3 {
-      color: #00a2ff;
-    }
-    
-    .gate-option.fracture h3 {
-      color: #f300ff;
-    }
-    
-    .gate-option p {
-      color: #ccc;
-      line-height: 1.5;
-      font-size: 16px;
-    }
-    
-    .effect-text {
-      position: absolute;
-      font-size: 32px;
-      font-weight: bold;
-      text-align: center;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 15;
-      text-shadow: 0 0 10px #00f3ff;
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    
-    .effect-text.fracture {
-      color: #f300ff;
-      text-shadow: 0 0 10px #f300ff;
     }
     
     .relic-popup {
@@ -615,11 +517,6 @@
           <span class="stat-label">Shards Collected:</span>
           <span class="stat-value shards" id="shardsCollected">0</span>
         </div>
-        
-        <div class="path-reward" id="pathReward">
-          <h3>SAFE PATH REWARD</h3>
-          <p>+10 Shards per minute | Lower obstacle density | Steady progression</p>
-        </div>
       </div>
       
       <div class="menu-btn-container">
@@ -639,29 +536,26 @@
       
       <div class="upgrade-card">
         <div class="upgrade-header">
-          <div class="upgrade-title">Character Skins</div>
-        </div>
-        <div class="upgrade-desc">Change the appearance of your Aether Drifter.</div>
-        <button class="buy-btn" disabled>Aether Drifter (Equipped)</button>
-        <button class="buy-btn" disabled style="margin-top:10px; background: #555;">Shard Golem (Locked)</button>
-      </div>
-
-      <div class="upgrade-card">
-        <div class="upgrade-header">
           <div class="upgrade-title">Time Bend Capacity</div>
-          <div class="upgrade-cost">50 ✦</div>
+          <div class="upgrade-cost" id="timeBendCost">50 ✦</div>
         </div>
         <div class="upgrade-desc">Increase the number of time bends you can use per run.</div>
-        <button class="buy-btn" id="upgradeTimeBend">Purchase</button>
+        <div class="upgrade-level">
+            <span>Current Uses: <span id="timeBendLevel">1</span></span>
+        </div>
+        <button class="buy-btn" id="upgradeTimeBendBtn">Upgrade</button>
       </div>
       
       <div class="upgrade-card">
         <div class="upgrade-header">
           <div class="upgrade-title">Shard Magnet</div>
-          <div class="upgrade-cost">30 ✦</div>
+          <div class="upgrade-cost" id="magnetCost">30 ✦</div>
         </div>
         <div class="upgrade-desc">Increases collection radius for shards.</div>
-        <button class="buy-btn" id="upgradeMagnet">Purchase</button>
+         <div class="upgrade-level">
+            <span>Current Level: <span id="magnetLevel">0</span></span>
+        </div>
+        <button class="buy-btn" id="upgradeMagnetBtn">Upgrade</button>
       </div>
       
       <div class="upgrade-card">
@@ -669,28 +563,11 @@
           <div class="upgrade-title">Phantom Relic</div>
           <div class="upgrade-cost">120 ✦</div>
         </div>
-        <div class="upgrade-desc">Grants ability to phase through one obstacle per run.</div>
-        <button class="buy-btn" id="buyRelic">Purchase</button>
+        <div class="upgrade-desc">Grants ability to phase through one obstacle per run. Purchased once.</div>
+        <button class="buy-btn" id="buyRelicBtn">Purchase</button>
       </div>
       
       <button class="menu-btn" id="backToMenuBtn" style="margin-top: 20px;">Back to Main Menu</button>
-    </div>
-    
-    <div class="fracture-gate" id="fractureGate">
-      <h2>THE PATH SPLITS</h2>
-      <p>Choose wisely - your decision affects rewards and difficulty</p>
-      
-      <div class="gate-options">
-        <div class="gate-option safe" id="safePathOption">
-          <h3>SAFE PATH →</h3>
-          <p>+10 Shards per minute | Lower obstacle density | Steady progression</p>
-        </div>
-        
-        <div class="gate-option fracture" id="fracturePathOption">
-          <h3>FRACTURE PATH ✦</h3>
-          <p>+25 Shards per minute | Rotating fractal obstacles | Chance for rare relics</p>
-        </div>
-      </div>
     </div>
     
     <div class="relic-popup" id="relicPopup">
@@ -705,42 +582,22 @@
     // Game constants
     const GAME_WIDTH = 400;
     const GAME_HEIGHT = 800;
-    const PLAYER_SIZE = 30; // Visual size of the character
+    const PLAYER_SIZE = 30;
     
     // Game state
     let gameState = {
       score: 0,
       totalShards: 0,
       mode: 'safe',
-      player: {
-          x: GAME_WIDTH / 2,
-          y: GAME_HEIGHT - 100,
-          targetX: GAME_WIDTH / 2,
-          size: PLAYER_SIZE,
-          isAlive: true,
-          trail: []
-      },
+      player: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, size: PLAYER_SIZE, isAlive: true, trail: [] },
       obstacles: [],
       shardsCollectible: [],
       particles: [],
-      timeBend: {
-        maxUses: 1,
-        currentUses: 1,
-        cooldown: 0,
-        maxCooldown: 5000,
-        duration: 2000,
-        active: false
-      },
-      upgrades: {
-        shardMagnetLevel: 0,
-      },
-      relics: {
-        phantomPhase: false,
-        phantomPhaseUsed: false,
-      },
+      timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, duration: 2000, active: false },
+      upgrades: { timeBendLevel: 1, shardMagnetLevel: 0 },
+      relics: { phantomPhase: false, phantomPhaseUsed: false },
       gameActive: false,
       currentRunShards: 0,
-      lastFractureGapX: GAME_WIDTH / 2,
       nextObstacleY: GAME_HEIGHT - 300, 
     };
     
@@ -755,9 +612,6 @@
     const finalScore = document.getElementById('finalScore');
     const shardsCollected = document.getElementById('shardsCollected');
     const timeSurvived = document.getElementById('timeSurvived');
-    const pathReward = document.getElementById('pathReward');
-    const fractureGate = document.getElementById('fractureGate');
-    const relicPopup = document.getElementById('relicPopup');
     const totalShards = document.getElementById('totalShards');
     
     const menuScreen = document.getElementById('menuScreen');
@@ -769,13 +623,15 @@
     const menuBtn = document.getElementById('menuBtn');
     const shopScreen = document.getElementById('shopScreen');
     const backToMenuBtn = document.getElementById('backToMenuBtn');
-    const relicCloseBtn = document.getElementById('relicCloseBtn');
-    const safePathOption = document.getElementById('safePathOption');
-    const fracturePathOption = document.getElementById('fracturePathOption');
-
-    const upgradeTimeBendBtn = document.getElementById('upgradeTimeBend');
-    const upgradeMagnetBtn = document.getElementById('upgradeMagnet');
-    const buyRelicBtn = document.getElementById('buyRelic');
+    
+    // Shop UI
+    const timeBendCostEl = document.getElementById('timeBendCost');
+    const timeBendLevelEl = document.getElementById('timeBendLevel');
+    const magnetCostEl = document.getElementById('magnetCost');
+    const magnetLevelEl = document.getElementById('magnetLevel');
+    const upgradeTimeBendBtn = document.getElementById('upgradeTimeBendBtn');
+    const upgradeMagnetBtn = document.getElementById('upgradeMagnetBtn');
+    const buyRelicBtn = document.getElementById('buyRelicBtn');
     
     function initGame() {
       canvas.width = GAME_WIDTH;
@@ -788,27 +644,17 @@
       gameState.score = 0;
       gameState.currentRunShards = 0;
       gameState.startTime = Date.now();
-      gameState.player = {
-          x: GAME_WIDTH / 2,
-          y: GAME_HEIGHT - 100,
-          targetX: GAME_WIDTH / 2,
-          size: PLAYER_SIZE,
-          isAlive: true,
-          trail: []
-      };
+      gameState.player = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, size: PLAYER_SIZE, isAlive: true, trail: [] };
       gameState.obstacles = [];
       gameState.shardsCollectible = [];
       gameState.particles = [];
-      gameState.timeBend = {
-        ...gameState.timeBend,
-        currentUses: gameState.timeBend.maxUses,
-        cooldown: 0,
-        active: false
-      };
+      gameState.timeBend.maxUses = gameState.upgrades.timeBendLevel;
+      gameState.timeBend.currentUses = gameState.timeBend.maxUses;
+      gameState.timeBend.cooldown = 0;
+      gameState.timeBend.active = false;
       gameState.relics.phantomPhaseUsed = false;
       gameState.nextObstacleY = GAME_HEIGHT - 300;
       gameState.gameActive = true;
-      
       scoreValue.textContent = '0';
       shardValue.textContent = '0';
       gameOverScreen.style.display = 'none';
@@ -819,7 +665,6 @@
 
     function setupEventListeners() {
       let isTouching = false;
-
       const handleMove = (clientX) => {
         if (!isTouching || !gameState.gameActive) return;
         const rect = canvas.getBoundingClientRect();
@@ -827,32 +672,17 @@
         const touchX = (clientX - rect.left) * scaleX;
         gameState.player.targetX = touchX;
       };
-
-      canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        isTouching = true;
-        handleMove(e.touches[0].clientX);
-      });
-
-      canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        handleMove(e.touches[0].clientX);
-      });
-
-      canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        isTouching = false;
-      });
-
+      canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isTouching = true; handleMove(e.touches[0].clientX); });
+      canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e.touches[0].clientX); });
+      canvas.addEventListener('touchend', (e) => { e.preventDefault(); isTouching = false; });
       timeBendBtn.addEventListener('click', activateTimeBend);
       safeModeBtn.addEventListener('click', () => startGame('safe'));
       fractureModeBtn.addEventListener('click', () => startGame('fracture'));
-      shopBtn.addEventListener('click', () => showShop());
+      shopBtn.addEventListener('click', showShop);
       retryBtn.addEventListener('click', () => startGame(gameState.mode));
       fractureRetryBtn.addEventListener('click', () => startGame('fracture'));
-      menuBtn.addEventListener('click', () => showMenu());
-      backToMenuBtn.addEventListener('click', () => showMenu());
-
+      menuBtn.addEventListener('click', showMenu);
+      backToMenuBtn.addEventListener('click', showMenu);
       upgradeTimeBendBtn.addEventListener('click', purchaseTimeBend);
       upgradeMagnetBtn.addEventListener('click', purchaseMagnet);
       buyRelicBtn.addEventListener('click', purchaseRelic);
@@ -877,35 +707,50 @@
       shopScreen.style.display = 'flex';
       updateShopUI();
     }
+    
+    function getUpgradeCost(baseCost, level) {
+        return Math.floor(baseCost * Math.pow(1.5, level));
+    }
 
     function updateShopUI() {
         totalShards.textContent = gameState.totalShards;
-        const timeBendCost = 50;
-        const magnetCost = 30;
-        const relicCost = 120;
 
+        // Time Bend
+        const timeBendLevel = gameState.upgrades.timeBendLevel - 1;
+        const timeBendCost = getUpgradeCost(50, timeBendLevel);
+        timeBendLevelEl.textContent = gameState.upgrades.timeBendLevel;
+        timeBendCostEl.textContent = `${timeBendCost} ✦`;
         upgradeTimeBendBtn.disabled = gameState.totalShards < timeBendCost;
+        
+        // Shard Magnet
+        const magnetLevel = gameState.upgrades.shardMagnetLevel;
+        const magnetCost = getUpgradeCost(30, magnetLevel);
+        magnetLevelEl.textContent = magnetLevel;
+        magnetCostEl.textContent = `${magnetCost} ✦`;
         upgradeMagnetBtn.disabled = gameState.totalShards < magnetCost;
 
+        // Relic
         if (gameState.relics.phantomPhase) {
             buyRelicBtn.disabled = true;
             buyRelicBtn.textContent = "Purchased";
         } else {
-            buyRelicBtn.disabled = gameState.totalShards < relicCost;
+            buyRelicBtn.disabled = gameState.totalShards < 120;
         }
     }
 
     function purchaseTimeBend() {
-        const cost = 50;
+        const level = gameState.upgrades.timeBendLevel - 1;
+        const cost = getUpgradeCost(50, level);
         if (gameState.totalShards >= cost) {
             gameState.totalShards -= cost;
-            gameState.timeBend.maxUses++;
+            gameState.upgrades.timeBendLevel++;
             updateShopUI();
         }
     }
 
     function purchaseMagnet() {
-        const cost = 30;
+        const level = gameState.upgrades.shardMagnetLevel;
+        const cost = getUpgradeCost(30, level);
         if (gameState.totalShards >= cost) {
             gameState.totalShards -= cost;
             gameState.upgrades.shardMagnetLevel++;
@@ -914,9 +759,8 @@
     }
 
     function purchaseRelic() {
-        const cost = 120;
-        if (gameState.totalShards >= cost && !gameState.relics.phantomPhase) {
-            gameState.totalShards -= cost;
+        if (gameState.totalShards >= 120 && !gameState.relics.phantomPhase) {
+            gameState.totalShards -= 120;
             gameState.relics.phantomPhase = true;
             updateShopUI();
         }
@@ -926,18 +770,13 @@
         if (!gameState.player.isAlive) return;
         gameState.gameActive = false;
         gameState.player.isAlive = false;
-
         createParticleExplosion(gameState.player.x, gameState.player.y, 40, '#00f3ff');
-
         setTimeout(() => {
-            gameState.timeSurvived = Math.floor((Date.now() - gameState.startTime) / 1000);
-            const minutes = Math.floor(gameState.timeSurvived / 60);
-            const seconds = gameState.timeSurvived % 60;
-            timeSurvived.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const time = Math.floor((Date.now() - gameState.startTime) / 1000);
+            timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
             finalScore.textContent = gameState.score;
             shardsCollected.textContent = gameState.currentRunShards;
             gameState.totalShards += gameState.currentRunShards;
-
             gameOverScreen.style.display = 'flex';
             setTimeout(() => gameOverScreen.style.opacity = '1', 50);
         }, 800);
@@ -948,15 +787,9 @@
         gameState.timeBend.currentUses--;
         gameState.timeBend.active = true;
         gameState.timeBend.cooldown = gameState.timeBend.maxCooldown;
-
-        setTimeout(() => {
-          gameState.timeBend.active = false;
-        }, gameState.timeBend.duration);
-
+        setTimeout(() => { gameState.timeBend.active = false; }, gameState.timeBend.duration);
         timeBendCooldown.style.animation = `cooldown ${gameState.timeBend.maxCooldown/1000}s linear forwards`;
-        setTimeout(() => {
-            timeBendCooldown.style.animation = '';
-        }, gameState.timeBend.maxCooldown);
+        setTimeout(() => { timeBendCooldown.style.animation = ''; }, gameState.timeBend.maxCooldown);
       }
     }
     
@@ -964,34 +797,24 @@
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 4;
-            gameState.particles.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                alpha: 1,
-                size: 1 + Math.random() * 3,
-                color: color
-            });
+            gameState.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, size: 1 + Math.random() * 3, color: color });
         }
     }
 
     function updateGame() {
       if (!gameState.gameActive) return;
-      
       const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
       
       gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
       gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
-
       gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-      if (gameState.player.trail.length > 20) {
-          gameState.player.trail.shift();
-      }
+      if (gameState.player.trail.length > 20) gameState.player.trail.shift();
       gameState.player.trail.forEach(p => p.alpha -= 0.05);
 
       gameState.nextObstacleY -= (2 + (gameState.mode === 'fracture' ? 2 : 0)) * timeFactor;
       if (gameState.nextObstacleY <= 0) {
           createObstacle();
+          if (gameState.mode === 'fracture') createFractureDebris();
           const baseDistance = gameState.mode === 'fracture' ? 100 : 130;
           gameState.nextObstacleY = baseDistance + Math.random() * 50;
       }
@@ -1001,12 +824,7 @@
       
       gameState.obstacles.forEach((obs, i) => {
         obs.y += (obs.speed + gameState.score * 0.005) * timeFactor;
-        
-        if (!obs.passed && obs.y > gameState.player.y) {
-          obs.passed = true;
-          gameState.score++;
-          scoreValue.textContent = gameState.score;
-        }
+        if (!obs.passed && obs.y > gameState.player.y) { obs.passed = true; gameState.score++; scoreValue.textContent = gameState.score; }
         if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
       });
       
@@ -1014,7 +832,7 @@
         shard.y += (2 + (gameState.mode === 'fracture' ? 1 : 0)) * timeFactor;
         const dx = shard.x - gameState.player.x;
         const dy = shard.y - gameState.player.y;
-        const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 10);
+        const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
         if (Math.sqrt(dx*dx + dy*dy) < PLAYER_SIZE / 2 + magnetRadius) {
           gameState.currentRunShards++;
           shardValue.textContent = gameState.currentRunShards;
@@ -1030,26 +848,24 @@
     
     function checkCollisions() {
         if (!gameState.player.isAlive) return;
-
         const hitboxWidth = PLAYER_SIZE * 0.5;
         const hitboxHeight = PLAYER_SIZE * 0.9;
-        const playerLeft = gameState.player.x - hitboxWidth / 2;
-        const playerRight = gameState.player.x + hitboxWidth / 2;
-        const playerTop = gameState.player.y - hitboxHeight / 2;
-        const playerBottom = gameState.player.y + hitboxHeight / 2;
+        const pL = gameState.player.x - hitboxWidth / 2;
+        const pR = gameState.player.x + hitboxWidth / 2;
+        const pT = gameState.player.y - hitboxHeight / 2;
+        const pB = gameState.player.y + hitboxHeight / 2;
 
         for (const obs of gameState.obstacles) {
-            const obsLeft = obs.x;
-            const obsRight = obs.x + obs.width;
-            const obsTop = obs.y;
-            const obsBottom = obs.y + obs.height;
+            const oL = obs.x;
+            const oR = obs.x + obs.width;
+            const oT = obs.y;
+            const oB = obs.y + obs.height;
 
-            if (playerRight > obsLeft && playerLeft < obsRight && playerBottom > obsTop && playerTop < obsBottom) {
+            if (pR > oL && pL < oR && pB > oT && pT < oB) {
                 if (gameState.relics.phantomPhase && !gameState.relics.phantomPhaseUsed) {
                     gameState.relics.phantomPhaseUsed = true;
                     createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 30, '#ffffff');
-                    const index = gameState.obstacles.indexOf(obs);
-                    if (index > -1) gameState.obstacles.splice(index, 1);
+                    gameState.obstacles.splice(gameState.obstacles.indexOf(obs), 1);
                     return; 
                 } else {
                     endGame();
@@ -1062,12 +878,9 @@
     function drawPlayerCharacter(ctx, x, y, size, time) {
         ctx.save();
         ctx.translate(x, y);
-
         const tilt = (gameState.player.targetX - x) * 0.005;
         ctx.rotate(tilt);
-
         const breath = Math.sin(time * 5) * 0.05 + 1;
-
         if (gameState.timeBend.active) {
             const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2.5);
             grad.addColorStop(0, 'rgba(0, 243, 255, 0.4)');
@@ -1077,30 +890,25 @@
             ctx.arc(0, 0, size * 2.5, 0, Math.PI * 2);
             ctx.fill();
         }
-
         ctx.beginPath();
         ctx.moveTo(0, -size * 0.8 * breath);
         ctx.bezierCurveTo(size * 0.7, -size * 0.4, size * 0.6, size * 0.6, 0, size * breath);
         ctx.bezierCurveTo(-size * 0.6, size * 0.6, -size * 0.7, -size * 0.4, 0, -size * 0.8 * breath);
         ctx.closePath();
-        
         const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
         bodyGrad.addColorStop(0, 'white');
         bodyGrad.addColorStop(0.4, '#00f3ff');
         bodyGrad.addColorStop(1, '#f300ff');
-
         ctx.fillStyle = bodyGrad;
         ctx.shadowColor = '#00f3ff';
         ctx.shadowBlur = 25;
         ctx.fill();
-
         ctx.beginPath();
         ctx.arc(0, -size * 0.3, size * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = 'white';
         ctx.shadowColor = 'white';
         ctx.shadowBlur = 15;
         ctx.fill();
-
         ctx.restore();
     }
 
@@ -1116,63 +924,57 @@
 
     function drawGame() {
       ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-      
       if (gameState.player.isAlive) {
           drawPlayerTrail(ctx);
           drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, Date.now() / 1000);
       }
-      
       gameState.obstacles.forEach(obs => {
-        const color = obs.isFracture ? `rgba(0, 162, 255, 0.85)` : `rgba(255, 0, 122, 0.85)`;
+        const color = obs.isFracture ? '#00a2ff' : '#ff007a';
         ctx.fillStyle = color;
-        ctx.shadowColor = obs.isFracture ? '#00a2ff' : '#ff007a';
+        ctx.shadowColor = color;
         ctx.shadowBlur = 15;
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
       });
-
       gameState.shardsCollectible.forEach(shard => {
-        ctx.fillStyle = 'rgba(243,0,255,0.9)';
+        ctx.fillStyle = '#f300ff';
         ctx.shadowColor = '#f300ff';
         ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2); ctx.fill();
       });
-
       gameState.particles.forEach((p, i) => {
         p.alpha -= 0.02;
         if (p.alpha <= 0) gameState.particles.splice(i, 1);
         p.x += p.vx;
         p.y += p.vy;
         ctx.fillStyle = `${p.color}${Math.floor(p.alpha * 255).toString(16).padStart(2, '0')}`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
       });
-      
       ctx.shadowBlur = 0;
     }
     
     function createObstacle() {
         const isFracture = gameState.mode === 'fracture';
         const gapSize = PLAYER_SIZE + 80;
-        const speed = isFracture ? 4 : 2; // Double speed for fracture
-        
+        const speed = isFracture ? 4 : 2;
         const positionOfGap = Math.random() * (GAME_WIDTH - gapSize);
-
         const obsDefaults = { y: -30, height: 20, speed: speed, passed: false, isFracture: isFracture };
-
-        // Obstacle to the left of the gap
-        const width1 = positionOfGap;
-        if (width1 > 15) {
-            gameState.obstacles.push({ ...obsDefaults, x: 0, width: width1 });
+        if (positionOfGap > 0) {
+            gameState.obstacles.push({ ...obsDefaults, x: 0, width: positionOfGap });
         }
+        const rightSideX = positionOfGap + gapSize;
+        if (rightSideX < GAME_WIDTH) {
+            gameState.obstacles.push({ ...obsDefaults, x: rightSideX, width: GAME_WIDTH - rightSideX });
+        }
+    }
 
-        // Obstacle to the right of the gap
-        const x2 = positionOfGap + gapSize;
-        const width2 = GAME_WIDTH - x2;
-        if (width2 > 15) {
-            gameState.obstacles.push({ ...obsDefaults, x: x2, width: width2 });
+    function createFractureDebris() {
+        const count = Math.random() > 0.5 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+            const size = 20 + Math.random() * 30;
+            gameState.obstacles.push({
+                x: Math.random() * (GAME_WIDTH - size), y: -30,
+                width: size, height: 15, speed: 5, passed: true, isFracture: true
+            });
         }
     }
 
