@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shatterloop - Aether Drifter</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      touch-action: manipulation;
+    }
+    
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #0c0c2d, #000);
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    #gameContainer {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #0a0a20, #000 70%);
+      z-index: 1;
+    }
+    
+    #uiContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    
+    .score-display {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+      pointer-events: none;
+    }
+    
+    .shard-count {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 10px #f300ff, 0 0 20px #f300ff;
+      pointer-events: none;
+    }
+    
+    .time-bend-ui {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #00f3ff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      touch-action: manipulation;
+      z-index: 20;
+    }
+    
+    .time-bend-icon {
+      font-size: 30px;
+      color: #00f3ff;
+      text-shadow: 0 0 10px #00f3ff;
+    }
+    
+    .time-bend-cooldown {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 5px solid transparent;
+      border-top-color: #00f3ff;
+      animation: cooldown 5s linear forwards;
+      opacity: 0.7;
+    }
+    
+    @keyframes cooldown {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    #menuScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f0c4d, #000);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    #menuScreen h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      background: linear-gradient(to right, #00f3ff, #f300ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+      letter-spacing: 1px;
+    }
+    
+    #menuScreen p {
+      font-size: 18px;
+      max-width: 90%;
+      margin-bottom: 30px;
+      color: #aaa;
+      line-height: 1.5;
+    }
+    
+    .menu-btn {
+      background: linear-gradient(to right, #0047ff, #00a2ff);
+      border: none;
+      border-radius: 50px;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 15px 40px;
+      margin: 15px 0;
+      width: 80%;
+      max-width: 350px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0, 162, 255, 0.4);
+      letter-spacing: 1px;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    
+    .menu-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(0, 162, 255, 0.6);
+    }
+    
+    .menu-btn.fracture {
+      background: linear-gradient(to right, #7b00ff, #f300ff);
+      box-shadow: 0 5px 15px rgba(243, 0, 255, 0.4);
+    }
+    
+    .menu-btn.fracture:active {
+      box-shadow: 0 3px 10px rgba(243, 0, 255, 0.6);
+    }
+    
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none; /* Initially hidden */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    
+    .stats-container {
+      background: rgba(20, 20, 40, 0.7);
+      border-radius: 20px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      margin-bottom: 25px;
+      border: 1px solid #333;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #222;
+      font-size: 18px;
+    }
+    
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+    
+    .stat-label {
+      color: #aaa;
+    }
+    
+    .stat-value {
+      font-weight: bold;
+      color: #00f3ff;
+    }
+    
+    .stat-value.shards {
+      color: #f300ff;
+    }
+    
+    .path-reward {
+      background: rgba(0, 0, 30, 0.7);
+      border-radius: 15px;
+      padding: 15px;
+      margin-top: 15px;
+      border: 1px solid #0066ff;
+    }
+    
+    .path-reward h3 {
+      color: #00a2ff;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    
+    .path-reward p {
+      color: #ccc;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+    
+    .path-reward.fracture {
+      border-color: #c700ff;
+    }
+    
+    .path-reward.fracture h3 {
+      color: #f300ff;
+    }
+    
+    .menu-btn-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 400px;
+      gap: 15px;
+    }
+    
+    #shopScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a0033, #000);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      z-index: 100;
+      padding: 30px 20px 20px;
+      overflow-y: auto;
+    }
+    
+    #shopScreen h1 {
+      font-size: 36px;
+      margin-bottom: 25px;
+      color: #f300ff;
+      text-align: center;
+    }
+    
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #333;
+    }
+    
+    .total-shards {
+      font-size: 24px;
+      background: linear-gradient(to right, #f300ff, #7b00ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 10px rgba(243, 0, 255, 0.3);
+    }
+    
+    .upgrade-card {
+      background: rgba(30, 10, 50, 0.7);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #440088;
+      transition: all 0.3s ease;
+    }
+    
+    .upgrade-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(123, 0, 255, 0.3);
+      border-color: #7b00ff;
+    }
+    
+    .upgrade-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .upgrade-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #d8a0ff;
+    }
+    
+    .upgrade-cost {
+      background: rgba(123, 0, 255, 0.2);
+      color: #f300ff;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      border: 1px solid #f300ff;
+    }
+    
+    .upgrade-desc {
+      color: #bbb;
+      line-height: 1.5;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    
+    .upgrade-level {
+      display: flex;
+      align-items: center;
+      color: #aaa;
+      font-size: 14px;
+    }
+    
+    .level-bar {
+      flex: 1;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      margin: 0 10px;
+      overflow: hidden;
+    }
+    
+    .level-progress {
+      height: 100%;
+      background: linear-gradient(to right, #f300ff, #7b00ff);
+      border-radius: 5px;
+      width: 60%;
+    }
+    
+    .buy-btn {
+      background: linear-gradient(to right, #7b00ff, #f300ff);
+      border: none;
+      border-radius: 50px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 12px 25px;
+      width: 100%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(243, 0, 255, 0.4);
+      letter-spacing: 1px;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    
+    .buy-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(243, 0, 255, 0.6);
+    }
+    
+    .buy-btn:disabled {
+      background: #555;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    
+    .fracture-gate {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+      padding: 20px;
+    }
+    
+    .gate-options {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 400px;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    
+    .gate-option {
+      background: rgba(20, 20, 40, 0.8);
+      border-radius: 20px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .gate-option:active {
+      transform: scale(0.98);
+    }
+    
+    .gate-option.safe {
+      border-color: #00a2ff;
+    }
+    
+    .gate-option.fracture {
+      border-color: #f300ff;
+    }
+    
+    .gate-option h3 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .gate-option.safe h3 {
+      color: #00a2ff;
+    }
+    
+    .gate-option.fracture h3 {
+      color: #f300ff;
+    }
+    
+    .gate-option p {
+      color: #ccc;
+      line-height: 1.5;
+      font-size: 16px;
+    }
+    
+    .effect-text {
+      position: absolute;
+      font-size: 32px;
+      font-weight: bold;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 15;
+      text-shadow: 0 0 10px #00f3ff;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    
+    .effect-text.fracture {
+      color: #f300ff;
+      text-shadow: 0 0 10px #f300ff;
+    }
+    
+    .relic-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(20, 10, 40, 0.9);
+      border: 2px solid #f300ff;
+      border-radius: 20px;
+      padding: 25px;
+      width: 85%;
+      max-width: 400px;
+      text-align: center;
+      display: none;
+      z-index: 110;
+      animation: popup 1.5s ease;
+    }
+    
+    @keyframes popup {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    
+    .relic-icon {
+      font-size: 48px;
+      color: #f300ff;
+      margin-bottom: 15px;
+      text-shadow: 0 0 15px rgba(243, 0, 255, 0.5);
+    }
+    
+    .relic-title {
+      font-size: 28px;
+      color: #f300ff;
+      margin-bottom: 10px;
+    }
+    
+    .relic-desc {
+      color: #ccc;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    
+    .relic-btn {
+      background: linear-gradient(to right, #7b00ff, #f300ff);
+      border: none;
+      border-radius: 50px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 12px 25px;
+      width: 80%;
+      max-width: 300px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(243, 0, 255, 0.4);
+    }
+    
+    .relic-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-height: 650px) {
+      .menu-btn {
+        padding: 12px 30px;
+        font-size: 18px;
+      }
+      
+      #menuScreen h1 {
+        font-size: 36px;
+      }
+      
+      .score-display, .shard-count {
+        font-size: 20px;
+        top: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="uiContainer">
+      <div class="score-display">Score: <span id="scoreValue">0</span></div>
+      <div class="shard-count">✦ <span id="shardValue">0</span></div>
+      
+      <div class="time-bend-ui" id="timeBendBtn">
+        <div class="time-bend-icon">⏳</div>
+        <div class="time-bend-cooldown" id="timeBendCooldown"></div>
+      </div>
+    </div>
+    
+    <div id="menuScreen">
+      <h1>SHATTERLOOP</h1>
+      <p>Guide the Aether Drifter through fractal dimensions. Bend time, collect shards, and master the loop. Choose your path wisely...</p>
+      
+      <button class="menu-btn" id="safeModeBtn">SAFE PATH</button>
+      <button class="menu-btn fracture" id="fractureModeBtn">FRACTURE PATH</button>
+      <button class="menu-btn" id="shopBtn">UPGRADES & RELICS</button>
+    </div>
+    
+    <div id="gameOverScreen">
+      <h2>Run Over ❌</h2>
+      
+      <div class="stats-container">
+        <div class="stat-row">
+          <span class="stat-label">Time Survived:</span>
+          <span class="stat-value" id="timeSurvived">0:00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Final Score:</span>
+          <span class="stat-value" id="finalScore">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Shards Collected:</span>
+          <span class="stat-value shards" id="shardsCollected">0</span>
+        </div>
+        
+        <div class="path-reward" id="pathReward">
+          <h3>SAFE PATH REWARD</h3>
+          <p>+10 Shards per minute | Lower obstacle density | Steady progression</p>
+        </div>
+      </div>
+      
+      <div class="menu-btn-container">
+        <button class="menu-btn" id="retryBtn">Retry ⟳</button>
+        <button class="menu-btn fracture" id="fractureRetryBtn">Take Fracture Path</button>
+        <button class="menu-btn" id="menuBtn">Main Menu</button>
+      </div>
+    </div>
+    
+    <div id="shopScreen">
+      <h1>UPGRADE STATION</h1>
+      
+      <div class="shop-header">
+        <div>Total Shards:</div>
+        <div class="total-shards">✦ <span id="totalShards">0</span></div>
+      </div>
+      
+      <div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">Character Skins</div>
+        </div>
+        <div class="upgrade-desc">Change the appearance of your Aether Drifter.</div>
+        <button class="buy-btn" disabled>Aether Drifter (Equipped)</button>
+        <button class="buy-btn" disabled style="margin-top:10px; background: #555;">Shard Golem (Locked)</button>
+      </div>
+
+      <div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">Time Bend Capacity</div>
+          <div class="upgrade-cost">50 ✦</div>
+        </div>
+        <div class="upgrade-desc">Increase the number of time bends you can use per run.</div>
+        <button class="buy-btn" id="upgradeTimeBend">Purchase</button>
+      </div>
+      
+      <div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">Shard Magnet</div>
+          <div class="upgrade-cost">30 ✦</div>
+        </div>
+        <div class="upgrade-desc">Increases collection radius for shards.</div>
+        <button class="buy-btn" id="upgradeMagnet">Purchase</button>
+      </div>
+      
+      <div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">Phantom Relic</div>
+          <div class="upgrade-cost">120 ✦</div>
+        </div>
+        <div class="upgrade-desc">Grants ability to phase through one obstacle per run.</div>
+        <button class="buy-btn" id="buyRelic">Purchase</button>
+      </div>
+      
+      <button class="menu-btn" id="backToMenuBtn" style="margin-top: 20px;">Back to Main Menu</button>
+    </div>
+    
+    <div class="fracture-gate" id="fractureGate">
+      <h2>THE PATH SPLITS</h2>
+      <p>Choose wisely - your decision affects rewards and difficulty</p>
+      
+      <div class="gate-options">
+        <div class="gate-option safe" id="safePathOption">
+          <h3>SAFE PATH →</h3>
+          <p>+10 Shards per minute | Lower obstacle density | Steady progression</p>
+        </div>
+        
+        <div class="gate-option fracture" id="fracturePathOption">
+          <h3>FRACTURE PATH ✦</h3>
+          <p>+25 Shards per minute | Rotating fractal obstacles | Chance for rare relics</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="relic-popup" id="relicPopup">
+      <div class="relic-icon">💠</div>
+      <div class="relic-title">PHANTOM PHASE</div>
+      <div class="relic-desc">You've unlocked the Phantom Phase relic! Tap the icon during gameplay to phase through one obstacle.</div>
+      <button class="relic-btn" id="relicCloseBtn">Continue</button>
+    </div>
+  </div>
+
+  <script>
+    // Game constants
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 800;
+    const PLAYER_SIZE = 30; // Visual size of the character
+    const OBSTACLE_MIN_WIDTH = 60;
+    const OBSTACLE_MAX_WIDTH = 180;
+    
+    // Game state
+    let gameState = {
+      score: 0,
+      totalShards: 0,
+      mode: 'safe',
+      player: {
+          x: GAME_WIDTH / 2,
+          y: GAME_HEIGHT - 100,
+          targetX: GAME_WIDTH / 2,
+          size: PLAYER_SIZE,
+          isAlive: true,
+          trail: []
+      },
+      obstacles: [],
+      shardsCollectible: [],
+      particles: [],
+      timeBend: {
+        maxUses: 1,
+        currentUses: 1,
+        cooldown: 0,
+        maxCooldown: 5000,
+        duration: 2000,
+        active: false
+      },
+      upgrades: {
+        shardMagnetLevel: 0,
+      },
+      relics: {
+        phantomPhase: false,
+        phantomPhaseUsed: false,
+      },
+      gameActive: false,
+      currentRunShards: 0,
+      lastFractureGapX: GAME_WIDTH / 2,
+      nextObstacleDistance: 150,
+    };
+    
+    // DOM Elements
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreValue = document.getElementById('scoreValue');
+    const shardValue = document.getElementById('shardValue');
+    const timeBendBtn = document.getElementById('timeBendBtn');
+    const timeBendCooldown = document.getElementById('timeBendCooldown');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScore = document.getElementById('finalScore');
+    const shardsCollected = document.getElementById('shardsCollected');
+    const timeSurvived = document.getElementById('timeSurvived');
+    const pathReward = document.getElementById('pathReward');
+    const fractureGate = document.getElementById('fractureGate');
+    const relicPopup = document.getElementById('relicPopup');
+    const totalShards = document.getElementById('totalShards');
+    
+    const menuScreen = document.getElementById('menuScreen');
+    const safeModeBtn = document.getElementById('safeModeBtn');
+    const fractureModeBtn = document.getElementById('fractureModeBtn');
+    const shopBtn = document.getElementById('shopBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const fractureRetryBtn = document.getElementById('fractureRetryBtn');
+    const menuBtn = document.getElementById('menuBtn');
+    const shopScreen = document.getElementById('shopScreen');
+    const backToMenuBtn = document.getElementById('backToMenuBtn');
+    const relicCloseBtn = document.getElementById('relicCloseBtn');
+    const safePathOption = document.getElementById('safePathOption');
+    const fracturePathOption = document.getElementById('fracturePathOption');
+
+    // Shop Buttons
+    const upgradeTimeBendBtn = document.getElementById('upgradeTimeBend');
+    const upgradeMagnetBtn = document.getElementById('upgradeMagnet');
+    const buyRelicBtn = document.getElementById('buyRelic');
+    
+    function initGame() {
+      canvas.width = GAME_WIDTH;
+      canvas.height = GAME_HEIGHT;
+      setupEventListeners();
+      gameLoop();
+    }
+    
+    function resetGameState() {
+      gameState.score = 0;
+      gameState.currentRunShards = 0;
+      gameState.startTime = Date.now();
+      gameState.player = {
+          x: GAME_WIDTH / 2,
+          y: GAME_HEIGHT - 100,
+          targetX: GAME_WIDTH / 2,
+          size: PLAYER_SIZE,
+          isAlive: true,
+          trail: []
+      };
+      gameState.obstacles = [];
+      gameState.shardsCollectible = [];
+      gameState.particles = [];
+      gameState.timeBend = {
+        ...gameState.timeBend,
+        currentUses: gameState.timeBend.maxUses,
+        cooldown: 0,
+        active: false
+      };
+      gameState.relics.phantomPhaseUsed = false;
+      gameState.lastFractureGapX = GAME_WIDTH / 2;
+      gameState.nextObstacleDistance = 150;
+      gameState.gameActive = true;
+      
+      scoreValue.textContent = '0';
+      shardValue.textContent = '0';
+      gameOverScreen.style.display = 'none';
+      gameOverScreen.style.opacity = '0';
+      timeBendCooldown.style.animation = 'none';
+      setTimeout(() => { timeBendCooldown.style.animation = ''; }, 10);
+    }
+
+    function setupEventListeners() {
+      let touchStartX = 0;
+      let isTouching = false;
+
+      const handleMove = (clientX) => {
+        if (!isTouching || !gameState.gameActive) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const touchX = (clientX - rect.left) * scaleX;
+        gameState.player.targetX = touchX;
+      };
+
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isTouching = true;
+        handleMove(e.touches[0].clientX);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        handleMove(e.touches[0].clientX);
+      });
+
+      canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isTouching = false;
+      });
+
+      timeBendBtn.addEventListener('click', activateTimeBend);
+      safeModeBtn.addEventListener('click', () => startGame('safe'));
+      fractureModeBtn.addEventListener('click', () => startGame('fracture'));
+      shopBtn.addEventListener('click', () => showShop());
+      retryBtn.addEventListener('click', () => startGame(gameState.mode));
+      fractureRetryBtn.addEventListener('click', () => startGame('fracture'));
+      menuBtn.addEventListener('click', () => showMenu());
+      backToMenuBtn.addEventListener('click', () => showMenu());
+
+      upgradeTimeBendBtn.addEventListener('click', purchaseTimeBend);
+      upgradeMagnetBtn.addEventListener('click', purchaseMagnet);
+      buyRelicBtn.addEventListener('click', purchaseRelic);
+    }
+
+    function startGame(mode) {
+      gameState.mode = mode;
+      resetGameState();
+      menuScreen.style.display = 'none';
+      shopScreen.style.display = 'none';
+    }
+
+    function showMenu() {
+      menuScreen.style.display = 'flex';
+      shopScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      gameState.gameActive = false;
+    }
+
+    function showShop() {
+      menuScreen.style.display = 'none';
+      shopScreen.style.display = 'flex';
+      updateShopUI();
+    }
+
+    function updateShopUI() {
+        totalShards.textContent = gameState.totalShards;
+        const timeBendCost = 50;
+        const magnetCost = 30;
+        const relicCost = 120;
+
+        upgradeTimeBendBtn.disabled = gameState.totalShards < timeBendCost;
+        upgradeMagnetBtn.disabled = gameState.totalShards < magnetCost;
+
+        if (gameState.relics.phantomPhase) {
+            buyRelicBtn.disabled = true;
+            buyRelicBtn.textContent = "Purchased";
+        } else {
+            buyRelicBtn.disabled = gameState.totalShards < relicCost;
+        }
+    }
+
+    function purchaseTimeBend() {
+        const cost = 50;
+        if (gameState.totalShards >= cost) {
+            gameState.totalShards -= cost;
+            gameState.timeBend.maxUses++;
+            updateShopUI();
+        }
+    }
+
+    function purchaseMagnet() {
+        const cost = 30;
+        if (gameState.totalShards >= cost) {
+            gameState.totalShards -= cost;
+            gameState.upgrades.shardMagnetLevel++;
+            updateShopUI();
+        }
+    }
+
+    function purchaseRelic() {
+        const cost = 120;
+        if (gameState.totalShards >= cost && !gameState.relics.phantomPhase) {
+            gameState.totalShards -= cost;
+            gameState.relics.phantomPhase = true;
+            updateShopUI();
+        }
+    }
+
+    function endGame() {
+        if (!gameState.player.isAlive) return;
+        gameState.gameActive = false;
+        gameState.player.isAlive = false;
+
+        createParticleExplosion(gameState.player.x, gameState.player.y, 40, '#00f3ff');
+
+        setTimeout(() => {
+            gameState.timeSurvived = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(gameState.timeSurvived / 60);
+            const seconds = gameState.timeSurvived % 60;
+            timeSurvived.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            finalScore.textContent = gameState.score;
+            shardsCollected.textContent = gameState.currentRunShards;
+            gameState.totalShards += gameState.currentRunShards;
+
+            gameOverScreen.style.display = 'flex';
+            setTimeout(() => gameOverScreen.style.opacity = '1', 50);
+        }, 800);
+    }
+    
+    function activateTimeBend() {
+      if (gameState.timeBend.currentUses > 0 && !gameState.timeBend.active && gameState.timeBend.cooldown <= 0) {
+        gameState.timeBend.currentUses--;
+        gameState.timeBend.active = true;
+        gameState.timeBend.cooldown = gameState.timeBend.maxCooldown;
+
+        setTimeout(() => {
+          gameState.timeBend.active = false;
+        }, gameState.timeBend.duration);
+
+        timeBendCooldown.style.animation = `cooldown ${gameState.timeBend.maxCooldown/1000}s linear forwards`;
+        setTimeout(() => {
+            timeBendCooldown.style.animation = '';
+        }, gameState.timeBend.maxCooldown);
+      }
+    }
+    
+    function createParticleExplosion(x, y, count, color) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 4;
+            gameState.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                alpha: 1,
+                size: 1 + Math.random() * 3,
+                color: color
+            });
+        }
+    }
+
+    function updateGame() {
+      if (!gameState.gameActive) return;
+      
+      const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
+      
+      gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
+      gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
+
+      gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
+      if (gameState.player.trail.length > 20) {
+          gameState.player.trail.shift();
+      }
+      gameState.player.trail.forEach(p => p.alpha -= 0.05);
+
+      const lastObstacle = gameState.obstacles[gameState.obstacles.length - 1];
+      if (!lastObstacle || lastObstacle.y > gameState.nextObstacleDistance) {
+          createObstacle();
+          const baseDistance = gameState.mode === 'fracture' ? 150 : 120;
+          gameState.nextObstacleDistance = baseDistance + Math.random() * 40;
+      }
+      
+      if (Math.random() < 0.015 * timeFactor) createShard();
+      
+      gameState.obstacles.forEach((obs, i) => {
+        if (obs.isFracture) {
+            obs.y += Math.sin(Date.now() / 300 + obs.animOffset) * 0.25 * timeFactor;
+        }
+        obs.y += (obs.speed + gameState.score * 0.005) * timeFactor;
+        
+        if (!obs.passed && obs.y > gameState.player.y) {
+          obs.passed = true;
+          gameState.score++;
+          scoreValue.textContent = gameState.score;
+        }
+        if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
+      });
+      
+      gameState.shardsCollectible.forEach((shard, i) => {
+        shard.y += 2 * timeFactor;
+        const dx = shard.x - gameState.player.x;
+        const dy = shard.y - gameState.player.y;
+        const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 10);
+        if (Math.sqrt(dx*dx + dy*dy) < PLAYER_SIZE / 2 + magnetRadius) {
+          gameState.currentRunShards++;
+          shardValue.textContent = gameState.currentRunShards;
+          createParticleExplosion(shard.x, shard.y, 10, '#f300ff');
+          gameState.shardsCollectible.splice(i, 1);
+        } else if (shard.y > GAME_HEIGHT + 20) {
+          gameState.shardsCollectible.splice(i, 1);
+        }
+      });
+      
+      checkCollisions();
+    }
+    
+    function checkCollisions() {
+        if (!gameState.player.isAlive) return;
+
+        const hitboxWidth = PLAYER_SIZE * 0.5;
+        const hitboxHeight = PLAYER_SIZE * 0.9;
+        const playerLeft = gameState.player.x - hitboxWidth / 2;
+        const playerRight = gameState.player.x + hitboxWidth / 2;
+        const playerTop = gameState.player.y - hitboxHeight / 2;
+        const playerBottom = gameState.player.y + hitboxHeight / 2;
+
+        for (const obs of gameState.obstacles) {
+            const obsLeft = obs.x;
+            const obsRight = obs.x + obs.width;
+            const obsTop = obs.y;
+            const obsBottom = obs.y + obs.height;
+
+            if (playerRight > obsLeft && playerLeft < obsRight && playerBottom > obsTop && playerTop < obsBottom) {
+                if (gameState.relics.phantomPhase && !gameState.relics.phantomPhaseUsed) {
+                    gameState.relics.phantomPhaseUsed = true;
+                    createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 30, '#ffffff');
+                    const index = gameState.obstacles.indexOf(obs);
+                    if (index > -1) gameState.obstacles.splice(index, 1);
+                    return; 
+                } else {
+                    endGame();
+                    return;
+                }
+            }
+        }
+    }
+    
+    function drawPlayerCharacter(ctx, x, y, size, time) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        const tilt = (gameState.player.targetX - x) * 0.005;
+        ctx.rotate(tilt);
+
+        const breath = Math.sin(time * 5) * 0.05 + 1;
+
+        if (gameState.timeBend.active) {
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 2.5);
+            grad.addColorStop(0, 'rgba(0, 243, 255, 0.4)');
+            grad.addColorStop(1, 'rgba(0, 243, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, size * 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.8 * breath);
+        ctx.bezierCurveTo(size * 0.7, -size * 0.4, size * 0.6, size * 0.6, 0, size * breath);
+        ctx.bezierCurveTo(-size * 0.6, size * 0.6, -size * 0.7, -size * 0.4, 0, -size * 0.8 * breath);
+        ctx.closePath();
+        
+        const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        bodyGrad.addColorStop(0, 'white');
+        bodyGrad.addColorStop(0.4, '#00f3ff');
+        bodyGrad.addColorStop(1, '#f300ff');
+
+        ctx.fillStyle = bodyGrad;
+        ctx.shadowColor = '#00f3ff';
+        ctx.shadowBlur = 25;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.3, size * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
+        ctx.shadowColor = 'white';
+        ctx.shadowBlur = 15;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawPlayerTrail(ctx) {
+        gameState.player.trail.forEach((p, i) => {
+            ctx.beginPath();
+            const alpha = p.alpha * (i / gameState.player.trail.length);
+            ctx.fillStyle = `rgba(0, 243, 255, ${alpha * 0.5})`;
+            ctx.arc(p.x, p.y + 10, i / 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      
+      if (gameState.player.isAlive) {
+          drawPlayerTrail(ctx);
+          drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, Date.now() / 1000);
+      }
+      
+      gameState.obstacles.forEach(obs => {
+        const alpha = 0.85 + Math.sin(Date.now() / 250 + (obs.animOffset || 0)) * 0.15;
+        const color = obs.isFracture ? `rgba(0, 162, 255, ${alpha})` : `rgba(255, 0, 122, 0.85)`;
+        ctx.fillStyle = color;
+        ctx.shadowColor = obs.isFracture ? '#00a2ff' : '#ff007a';
+        ctx.shadowBlur = 15;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      });
+
+      gameState.shardsCollectible.forEach(shard => {
+        ctx.fillStyle = 'rgba(243,0,255,0.9)';
+        ctx.shadowColor = '#f300ff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      gameState.particles.forEach((p, i) => {
+        p.alpha -= 0.02;
+        if (p.alpha <= 0) gameState.particles.splice(i, 1);
+        p.x += p.vx;
+        p.y += p.vy;
+        ctx.fillStyle = `${p.color}${Math.floor(p.alpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      ctx.shadowBlur = 0;
+    }
+    
+    function createObstacle() {
+        if (gameState.mode === 'fracture') {
+            const gapSize = PLAYER_SIZE + 80;
+            const maxOffset = 100;
+            const minX = Math.max(20, gameState.lastFractureGapX - maxOffset);
+            const maxX = Math.min(GAME_WIDTH - gapSize - 20, gameState.lastFractureGapX + maxOffset);
+            
+            const positionOfGap = minX + Math.random() * (maxX - minX);
+            gameState.lastFractureGapX = positionOfGap;
+
+            const fragmentLength = 30 + Math.random() * 20;
+            const fragmentGap = 15;
+
+            let currentX = 0;
+            while (currentX < positionOfGap - fragmentGap) {
+                let width = Math.min(fragmentLength, positionOfGap - currentX);
+                gameState.obstacles.push({
+                    x: currentX, y: -30, width: width, height: 20, speed: 2.5, passed: false,
+                    isFracture: true, animOffset: Math.random() * Math.PI * 2
+                });
+                currentX += fragmentLength + fragmentGap;
+            }
+
+            currentX = positionOfGap + gapSize;
+            while (currentX < GAME_WIDTH) {
+                let width = Math.min(fragmentLength, GAME_WIDTH - currentX);
+                gameState.obstacles.push({
+                    x: currentX, y: -30, width: width, height: 20, speed: 2.5, passed: false,
+                    isFracture: true, animOffset: Math.random() * Math.PI * 2
+                });
+                currentX += fragmentLength + fragmentGap;
+            }
+        } else {
+            const width = OBSTACLE_MIN_WIDTH + Math.random() * (OBSTACLE_MAX_WIDTH - OBSTACLE_MIN_WIDTH);
+            gameState.obstacles.push({ x: Math.random() * (GAME_WIDTH - width), y: -30, width, height: 20, speed: 2, passed: false, isFracture: false, animOffset: 0 });
+        }
+    }
+
+    function createShard() {
+      gameState.shardsCollectible.push({ x: Math.random() * (GAME_WIDTH - 20) + 10, y: -15 });
+    }
+    
+    function gameLoop() {
+      if (gameState.gameActive) {
+          updateGame();
+      }
+      drawGame();
+      requestAnimationFrame(gameLoop);
+    }
+    
+    window.addEventListener('load', initGame);
+  </script>
+</body>
+</html>
