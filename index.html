@@ -706,8 +706,6 @@
     const GAME_WIDTH = 400;
     const GAME_HEIGHT = 800;
     const PLAYER_SIZE = 30; // Visual size of the character
-    const OBSTACLE_MIN_WIDTH = 60;
-    const OBSTACLE_MAX_WIDTH = 180;
     
     // Game state
     let gameState = {
@@ -743,7 +741,7 @@
       gameActive: false,
       currentRunShards: 0,
       lastFractureGapX: GAME_WIDTH / 2,
-      nextObstacleDistance: 150,
+      nextObstacleY: GAME_HEIGHT - 300, 
     };
     
     // DOM Elements
@@ -775,7 +773,6 @@
     const safePathOption = document.getElementById('safePathOption');
     const fracturePathOption = document.getElementById('fracturePathOption');
 
-    // Shop Buttons
     const upgradeTimeBendBtn = document.getElementById('upgradeTimeBend');
     const upgradeMagnetBtn = document.getElementById('upgradeMagnet');
     const buyRelicBtn = document.getElementById('buyRelic');
@@ -809,8 +806,7 @@
         active: false
       };
       gameState.relics.phantomPhaseUsed = false;
-      gameState.lastFractureGapX = GAME_WIDTH / 2;
-      gameState.nextObstacleDistance = 150;
+      gameState.nextObstacleY = GAME_HEIGHT - 300;
       gameState.gameActive = true;
       
       scoreValue.textContent = '0';
@@ -822,7 +818,6 @@
     }
 
     function setupEventListeners() {
-      let touchStartX = 0;
       let isTouching = false;
 
       const handleMove = (clientX) => {
@@ -994,19 +989,17 @@
       }
       gameState.player.trail.forEach(p => p.alpha -= 0.05);
 
-      const lastObstacle = gameState.obstacles[gameState.obstacles.length - 1];
-      if (!lastObstacle || lastObstacle.y > gameState.nextObstacleDistance) {
+      gameState.nextObstacleY -= (2 + (gameState.mode === 'fracture' ? 2 : 0)) * timeFactor;
+      if (gameState.nextObstacleY <= 0) {
           createObstacle();
-          const baseDistance = gameState.mode === 'fracture' ? 150 : 120;
-          gameState.nextObstacleDistance = baseDistance + Math.random() * 40;
+          const baseDistance = gameState.mode === 'fracture' ? 100 : 130;
+          gameState.nextObstacleY = baseDistance + Math.random() * 50;
       }
       
-      if (Math.random() < 0.015 * timeFactor) createShard();
+      const shardSpawnRate = gameState.mode === 'fracture' ? 0.03 : 0.015;
+      if (Math.random() < shardSpawnRate * timeFactor) createShard();
       
       gameState.obstacles.forEach((obs, i) => {
-        if (obs.isFracture) {
-            obs.y += Math.sin(Date.now() / 300 + obs.animOffset) * 0.25 * timeFactor;
-        }
         obs.y += (obs.speed + gameState.score * 0.005) * timeFactor;
         
         if (!obs.passed && obs.y > gameState.player.y) {
@@ -1018,7 +1011,7 @@
       });
       
       gameState.shardsCollectible.forEach((shard, i) => {
-        shard.y += 2 * timeFactor;
+        shard.y += (2 + (gameState.mode === 'fracture' ? 1 : 0)) * timeFactor;
         const dx = shard.x - gameState.player.x;
         const dy = shard.y - gameState.player.y;
         const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 10);
@@ -1130,8 +1123,7 @@
       }
       
       gameState.obstacles.forEach(obs => {
-        const alpha = 0.85 + Math.sin(Date.now() / 250 + (obs.animOffset || 0)) * 0.15;
-        const color = obs.isFracture ? `rgba(0, 162, 255, ${alpha})` : `rgba(255, 0, 122, 0.85)`;
+        const color = obs.isFracture ? `rgba(0, 162, 255, 0.85)` : `rgba(255, 0, 122, 0.85)`;
         ctx.fillStyle = color;
         ctx.shadowColor = obs.isFracture ? '#00a2ff' : '#ff007a';
         ctx.shadowBlur = 15;
@@ -1162,40 +1154,25 @@
     }
     
     function createObstacle() {
-        if (gameState.mode === 'fracture') {
-            const gapSize = PLAYER_SIZE + 80;
-            const maxOffset = 100;
-            const minX = Math.max(20, gameState.lastFractureGapX - maxOffset);
-            const maxX = Math.min(GAME_WIDTH - gapSize - 20, gameState.lastFractureGapX + maxOffset);
-            
-            const positionOfGap = minX + Math.random() * (maxX - minX);
-            gameState.lastFractureGapX = positionOfGap;
+        const isFracture = gameState.mode === 'fracture';
+        const gapSize = PLAYER_SIZE + 80;
+        const speed = isFracture ? 4 : 2; // Double speed for fracture
+        
+        const positionOfGap = Math.random() * (GAME_WIDTH - gapSize);
 
-            const fragmentLength = 30 + Math.random() * 20;
-            const fragmentGap = 15;
+        const obsDefaults = { y: -30, height: 20, speed: speed, passed: false, isFracture: isFracture };
 
-            let currentX = 0;
-            while (currentX < positionOfGap - fragmentGap) {
-                let width = Math.min(fragmentLength, positionOfGap - currentX);
-                gameState.obstacles.push({
-                    x: currentX, y: -30, width: width, height: 20, speed: 2.5, passed: false,
-                    isFracture: true, animOffset: Math.random() * Math.PI * 2
-                });
-                currentX += fragmentLength + fragmentGap;
-            }
+        // Obstacle to the left of the gap
+        const width1 = positionOfGap;
+        if (width1 > 15) {
+            gameState.obstacles.push({ ...obsDefaults, x: 0, width: width1 });
+        }
 
-            currentX = positionOfGap + gapSize;
-            while (currentX < GAME_WIDTH) {
-                let width = Math.min(fragmentLength, GAME_WIDTH - currentX);
-                gameState.obstacles.push({
-                    x: currentX, y: -30, width: width, height: 20, speed: 2.5, passed: false,
-                    isFracture: true, animOffset: Math.random() * Math.PI * 2
-                });
-                currentX += fragmentLength + fragmentGap;
-            }
-        } else {
-            const width = OBSTACLE_MIN_WIDTH + Math.random() * (OBSTACLE_MAX_WIDTH - OBSTACLE_MIN_WIDTH);
-            gameState.obstacles.push({ x: Math.random() * (GAME_WIDTH - width), y: -30, width, height: 20, speed: 2, passed: false, isFracture: false, animOffset: 0 });
+        // Obstacle to the right of the gap
+        const x2 = positionOfGap + gapSize;
+        const width2 = GAME_WIDTH - x2;
+        if (width2 > 15) {
+            gameState.obstacles.push({ ...obsDefaults, x: x2, width: width2 });
         }
     }
 
