@@ -1879,81 +1879,73 @@
       }, 5000);
     }
     
-    //-- REPLACEMENT FUNCTION --//
+    //-- REPLACEMENT FOR: claimDailyReward() --//
 function claimDailyReward() {
     if (!currentUser) return;
-    
-    // Visually disable the button immediately to prevent double-clicks and show activity
+
     claimDailyBtn.disabled = true;
     claimDailyBtn.textContent = 'Claiming...';
 
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const userDocRef = db.collection('users').doc(currentUser.uid);
 
-    db.collection('users').doc(currentUser.uid).get()
+    userDocRef.get()
     .then(doc => {
         if (!doc.exists) {
-            throw new Error("User data not found. Please try again later.");
+            throw new Error("User data not found. Please reload.");
         }
+
         const userData = doc.data();
-        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0 };
-        const lastCheckIn = checkInData.lastCheckIn ? checkInData.lastCheckIn.toDate().getTime() : 0;
-        const lastCheckInDay = new Date(lastCheckIn).setHours(0, 0, 0, 0);
+        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
+        
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const lastCheckInStart = checkInData.lastCheckIn ? new Date(checkInData.lastCheckIn.toDate().setHours(0, 0, 0, 0)).getTime() : 0;
 
-        if (lastCheckInDay === today) {
-            // This case should be handled by the UI, but this is a safe fallback
-            claimDailyBtn.textContent = 'Already Claimed Today';
-            return; // Stop execution
+        if (lastCheckInStart === todayStart) {
+            throw new Error("Reward already claimed for today.");
         }
 
-        // Calculate the new streak
         let newStreak = 1;
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (lastCheckInDay === yesterday.getTime()) {
-            // If the last check-in was yesterday, increment the streak
+        const yesterdayStart = new Date(todayStart);
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+        if (lastCheckInStart === yesterdayStart.getTime()) {
             newStreak = (checkInData.streak || 0) + 1;
         }
-        
-        // Determine reward based on the new streak (day 1 = index 0)
+
         const rewards = [20, 20, 20, 30, 30, 50, 100];
-        const rewardIndex = Math.min(newStreak - 1, 6); // Day 7+ gets the 7th reward
+        const rewardIndex = Math.min(newStreak - 1, 6); // newStreak is at least 1, so index is at least 0.
         const reward = rewards[rewardIndex];
 
-        // Update the database
-        return db.collection('users').doc(currentUser.uid).update({
+        const updatePayload = {
             'dailyCheckIn.lastCheckIn': firebase.firestore.FieldValue.serverTimestamp(),
             'dailyCheckIn.streak': newStreak,
             'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
             'totalShards': firebase.firestore.FieldValue.increment(reward)
-        })
-        .then(() => {
-            // Success! Update local state and UI immediately.
-            gameState.totalShards += reward;
-            gameState.dailyCheckIn.streak = newStreak;
-            
-            claimDailyBtn.textContent = `Claimed ${reward} Shards!`;
-
-            // Re-render the entire daily check-in UI to reflect the new state
-            updateDailyCheckInUI(); 
-        });
+        };
+        
+        // Return the update promise to chain it correctly
+        return userDocRef.update(updatePayload).then(() => reward); // Pass the reward amount to the next .then()
+    })
+    .then((claimedReward) => {
+        // This block runs only after the database update is successful
+        claimDailyBtn.textContent = `Claimed ${claimedReward} Shards!`;
+        updateDailyCheckInUI(); // Refresh the UI to show the new state
     })
     .catch(error => {
-        console.error('Error claiming daily reward:', error);
-        // Provide clear feedback to the user on failure
+        console.error('Error claiming daily reward:', error.message);
         claimDailyBtn.textContent = 'Error! Try Again';
         claimDailyBtn.style.background = 'linear-gradient(to right, #ff4d4d, #c60000)';
-        
-        // Re-enable the button after a delay so the user can try again
+
         setTimeout(() => {
             claimDailyBtn.disabled = false;
             claimDailyBtn.textContent = 'Claim Today\'s Reward';
-            claimDailyBtn.style.background = ''; // Reverts to the default CSS style
+            claimDailyBtn.style.background = '';
         }, 3000);
     });
 }
     
-    //-- REPLACEMENT FUNCTION --//
+    //-- REPLACEMENT FOR: updateDailyCheckInUI() --//
 function updateDailyCheckInUI() {
     if (!currentUser) return;
 
@@ -1968,53 +1960,46 @@ function updateDailyCheckInUI() {
         const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0 };
         const userStreak = checkInData.streak || 0;
 
-        // Update the streak counter in the header
         streakCount.textContent = `${userStreak} days`;
 
-        // Check if the user has already claimed a reward today
         const now = new Date();
         const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const lastCheckIn = checkInData.lastCheckIn ? checkInData.lastCheckIn.toDate() : null;
         const lastCheckInDay = lastCheckIn ? new Date(lastCheckIn.getFullYear(), lastCheckIn.getMonth(), lastCheckIn.getDate()).getTime() : 0;
         const hasClaimedToday = lastCheckInDay === todayDate;
 
-        // --- NEW LOGIC: Generate UI based on streak ---
         calendarDays.innerHTML = '';
-        const rewards = [20, 20, 20, 30, 30, 50, 100]; // Rewards for Day 1 through Day 7
+        const rewards = [20, 20, 20, 30, 30, 50, 100]; 
 
         for (let i = 1; i <= 7; i++) {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'calendar-day';
 
-            // Day is 'completed' if its number is less than or equal to the current streak
             if (i <= userStreak) {
                 dayDiv.classList.add('completed');
                 dayDiv.innerHTML += '<div class="check-icon">✓</div>';
             } 
-            // The next day to claim is highlighted as 'current'
-            // This highlight is only shown if the user hasn't already claimed today
             else if (i === userStreak + 1 && !hasClaimedToday) {
                 dayDiv.classList.add('current');
             }
 
-            // Add the "Day X" text and reward amount
             dayDiv.innerHTML += `
               <div class="day-number">Day ${i}</div>
               <div class="day-reward">${rewards[i - 1]} ✦</div>
             `;
-
             calendarDays.appendChild(dayDiv);
         }
-
-        // --- END NEW LOGIC ---
-
-        // Update the main claim button's state
+        
         if (hasClaimedToday) {
-            // Find the reward that was claimed today to display it on the button
-            const rewardIndex = Math.min(userStreak - 1, 6);
-            const claimedReward = rewards[rewardIndex] || 20;
-            claimDailyBtn.textContent = `Claimed ${claimedReward} Shards Today!`;
             claimDailyBtn.disabled = true;
+            let claimedRewardText = "Already Claimed Today";
+            if(userStreak > 0) {
+                 const rewardIndex = Math.min(userStreak - 1, 6);
+                 const reward = rewards[rewardIndex];
+                 claimedRewardText = `Claimed ${reward} Shards Today!`;
+            }
+            claimDailyBtn.textContent = claimedRewardText;
+
         } else {
             claimDailyBtn.textContent = "Claim Today's Reward";
             claimDailyBtn.disabled = false;
