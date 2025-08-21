@@ -135,21 +135,26 @@
       100% { transform: rotate(360deg); }
     }
     
-    #menuScreen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #0f0c4d, #000);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
-      text-align: center;
-    }
+    /*-- REPLACEMENT FOR: #menuScreen --*/
+#menuScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0f0c4d, #000);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* Changed from 'center' */
+  z-index: 100;
+  padding: 20px;
+  padding-top: 5vh; /* Added for spacing */
+  padding-bottom: 5vh; /* Added for spacing */
+  text-align: center;
+  overflow-y: auto; /* Added to allow scrolling */
+  pointer-events: auto; /* Added for safety */
+}
     
     #menuScreen h1 {
       font-size: 48px;
@@ -2156,7 +2161,8 @@
       
       db.collection('users').doc(currentUser.uid).update({
         totalShards: gameState.totalShards,
-        highScore: Math.max(gameState.highScore, gameState.score),
+        //-- REPLACEMENT --//
+highScore: gameState.highScore,
         upgrades: {
           timeBendLevel: gameState.upgrades.timeBendLevel,
           shardMagnetLevel: gameState.upgrades.shardMagnetLevel,
@@ -2509,7 +2515,9 @@
         setTimeout(() => {
             const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
             timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
-            finalScore.textContent = gameState.score;
+            //-- REPLACEMENT --//
+const finalScoreInSeconds = (gameState.score / 1000).toFixed(3);
+finalScore.textContent = `${finalScoreInSeconds}s`;
             shardsCollected.textContent = gameState.currentRunShards;
             
             // Update totals
@@ -2574,8 +2582,10 @@
         gameState.speedMultiplier = 1.0 + (elapsedSecondsForSpeed * 0.001);
 
         // Update score based on elapsed milliseconds for fairness
-        gameState.score = currentTime - gameState.gameStartTime;
-        scoreValue.textContent = gameState.score;
+        //-- REPLACEMENT --//
+gameState.score = currentTime - gameState.gameStartTime;
+const scoreInSeconds = (gameState.score / 1000).toFixed(3);
+scoreValue.textContent = scoreInSeconds;
 
         const isFracture = gameState.mode === 'fracture';
         const basePathSpeed = isFracture ? 4 : 2;
