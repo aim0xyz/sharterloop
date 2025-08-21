@@ -269,21 +269,23 @@
       gap: 15px;
     }
     
-    #shopScreen, #leaderboardScreen, #authScreen, #profileScreen, #dailyCheckInScreen, #referralScreen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #1a0033, #000);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      z-index: 100;
-      padding: 30px 20px 20px;
-      overflow-y: auto;
-    }
+    /*-- REPLACEMENT FOR THE SHARED SCREEN STYLES --*/
+#shopScreen, #leaderboardScreen, #authScreen, #profileScreen, #dailyCheckInScreen, #referralScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a0033, #000);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 100;
+  padding: 30px 20px 20px;
+  overflow-y: auto;
+  pointer-events: auto; /* This line is the fix */
+}
     
     #shopScreen h1, #leaderboardScreen h1, #authScreen h1, #profileScreen h1, #dailyCheckInScreen h1, #referralScreen h1 {
       font-size: 36px;
