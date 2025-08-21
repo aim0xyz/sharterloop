@@ -1953,82 +1953,77 @@ function claimDailyReward() {
     });
 }
     
-    function updateDailyCheckInUI() {
-      if (!currentUser) return;
-      
-      // Get user's check-in data
-      db.collection('users').doc(currentUser.uid).get()
-        .then(doc => {
-          if (!doc.exists) return;
-          
-          const userData = doc.data();
-          const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
-          
-          // Update streak counter
-          streakCount.textContent = checkInData.streak || 0;
-          
-          // Get current day of week (0-6)
-          const now = new Date();
-          const todayDayOfWeek = now.getDay(); // 0 for Sunday, 6 for Saturday
-          const lastCheckIn = checkInData.lastCheckIn ? checkInData.lastCheckIn.toDate() : null;
-          const lastCheckInDay = lastCheckIn ? new Date(lastCheckIn.getFullYear(), lastCheckIn.getMonth(), lastCheckIn.getDate()).getTime() : 0;
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-          
-          // Generate calendar days
-          calendarDays.innerHTML = '';
-          
-          const rewards = [20, 20, 20, 30, 30, 50, 100]; // Rewards for each day
-          
-          for (let i = 0; i < 7; i++) {
+    //-- REPLACEMENT FUNCTION --//
+function updateDailyCheckInUI() {
+    if (!currentUser) return;
+
+    db.collection('users').doc(currentUser.uid).get()
+    .then(doc => {
+        if (!doc.exists) {
+            console.error("User document not found for UI update.");
+            return;
+        }
+
+        const userData = doc.data();
+        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0 };
+        const userStreak = checkInData.streak || 0;
+
+        // Update the streak counter in the header
+        streakCount.textContent = `${userStreak} days`;
+
+        // Check if the user has already claimed a reward today
+        const now = new Date();
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const lastCheckIn = checkInData.lastCheckIn ? checkInData.lastCheckIn.toDate() : null;
+        const lastCheckInDay = lastCheckIn ? new Date(lastCheckIn.getFullYear(), lastCheckIn.getMonth(), lastCheckIn.getDate()).getTime() : 0;
+        const hasClaimedToday = lastCheckInDay === todayDate;
+
+        // --- NEW LOGIC: Generate UI based on streak ---
+        calendarDays.innerHTML = '';
+        const rewards = [20, 20, 20, 30, 30, 50, 100]; // Rewards for Day 1 through Day 7
+
+        for (let i = 1; i <= 7; i++) {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'calendar-day';
-            
-            // Determine the date for each day in the calendar week
-            const dayDate = new Date(now);
-            dayDate.setDate(now.getDate() - todayDayOfWeek + i); // Set to Sunday of current week + i days
-            const dayDateValue = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()).getTime();
-            
-            let isCompleted = false;
-            // A day is completed if it was checked in, and is within the current streak.
-            if (lastCheckIn && dayDateValue < todayDate && dayDateValue >= (todayDate - (checkInData.streak - (lastCheckInDay === todayDate ? 1 : 0)) * 86400000)) {
-                isCompleted = true;
-            } else if (dayDateValue === todayDate && lastCheckInDay === todayDate) { // Today is completed
-                isCompleted = true;
+
+            // Day is 'completed' if its number is less than or equal to the current streak
+            if (i <= userStreak) {
+                dayDiv.classList.add('completed');
+                dayDiv.innerHTML += '<div class="check-icon">✓</div>';
+            } 
+            // The next day to claim is highlighted as 'current'
+            // This highlight is only shown if the user hasn't already claimed today
+            else if (i === userStreak + 1 && !hasClaimedToday) {
+                dayDiv.classList.add('current');
             }
-            
-            // Add appropriate classes
-            if (dayDateValue === todayDate) {
-              dayDiv.classList.add('current');
-            }
-            if (isCompleted) {
-              dayDiv.classList.add('completed');
-              dayDiv.innerHTML += '<div class="check-icon">✓</div>';
-            } else if (dayDateValue === todayDate) { // Only mark current day as active if not completed
-              dayDiv.classList.add('active');
-            }
-            
-            // Add day content
+
+            // Add the "Day X" text and reward amount
             dayDiv.innerHTML += `
-              <div class="day-number">${dayDate.getDate()}</div>
-              <div class="day-reward">${rewards[i]} ✦</div>
+              <div class="day-number">Day ${i}</div>
+              <div class="day-reward">${rewards[i - 1]} ✦</div>
             `;
-            
+
             calendarDays.appendChild(dayDiv);
-          }
-          
-          // Update claim button state
-          if (lastCheckIn && lastCheckInDay === todayDate) {
-            claimDailyBtn.textContent = 'Already Claimed Today';
+        }
+
+        // --- END NEW LOGIC ---
+
+        // Update the main claim button's state
+        if (hasClaimedToday) {
+            // Find the reward that was claimed today to display it on the button
+            const rewardIndex = Math.min(userStreak - 1, 6);
+            const claimedReward = rewards[rewardIndex] || 20;
+            claimDailyBtn.textContent = `Claimed ${claimedReward} Shards Today!`;
             claimDailyBtn.disabled = true;
-          } else {
-            claimDailyBtn.textContent = 'Claim Today\'s Reward';
+        } else {
+            claimDailyBtn.textContent = "Claim Today's Reward";
             claimDailyBtn.disabled = false;
-          }
-        })
-        .catch(error => {
-          console.error('Error updating daily check-in UI:', error);
-        });
-    }
+        }
+    })
+    .catch(error => {
+        console.error('Error updating daily check-in UI:', error);
+    });
+}
     
     function showAuthError(message) {
       authError.textContent = message;
