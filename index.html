@@ -1309,38 +1309,6 @@
   </div>
 
   <script>
-		
-		// ---------- ADD THESE HELPERS (insert once near the top of your script) ----------
-/**
- * Accepts a Firestore Timestamp, JS Date, number (ms) or ISO string and returns a JS Date or null.
- */
-function parseAnyDate(value) {
-  if (!value) return null;
-  // Firestore Timestamp
-  if (typeof value.toDate === 'function') return value.toDate();
-  // JS Date
-  if (value instanceof Date) return value;
-  // number milliseconds
-  if (typeof value === 'number') return new Date(value);
-  // ISO string
-  if (typeof value === 'string') {
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
-
-/**
- * Returns the start-of-day (00:00 local) timestamp (ms) for the provided value,
- * or 0 if value is falsy / invalid.
- */
-function getDayStartMs(value) {
-  const d = parseAnyDate(value);
-  if (!d) return 0;
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-}
-// ---------------------------------------------------------------------------------
-		
     // Firebase configuration - Replace with your own Firebase project config
     // You can find this in your Firebase project settings -> Project settings -> General -> Your apps
     const firebaseConfig = {
@@ -1911,7 +1879,7 @@ function getDayStartMs(value) {
       }, 5000);
     }
     
-    // ---------- REPLACE claimDailyReward() with this ----------
+    //-- REPLACEMENT FOR: claimDailyReward() --//
 function claimDailyReward() {
     if (!currentUser) return;
 
@@ -1928,10 +1896,10 @@ function claimDailyReward() {
 
         const userData = doc.data();
         const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
-
-        // Use helper to normalize date/timestamp
-        const todayStart = getDayStartMs(Date.now());
-        const lastCheckInStart = getDayStartMs(checkInData.lastCheckIn);
+        
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const lastCheckInStart = checkInData.lastCheckIn ? new Date(checkInData.lastCheckIn.toDate().setHours(0, 0, 0, 0)).getTime() : 0;
 
         if (lastCheckInStart === todayStart) {
             throw new Error("Reward already claimed for today.");
@@ -1946,7 +1914,7 @@ function claimDailyReward() {
         }
 
         const rewards = [20, 20, 20, 30, 30, 50, 100];
-        const rewardIndex = Math.min(newStreak - 1, 6); // newStreak >= 1
+        const rewardIndex = Math.min(newStreak - 1, 6); // newStreak is at least 1, so index is at least 0.
         const reward = rewards[rewardIndex];
 
         const updatePayload = {
@@ -1955,25 +1923,17 @@ function claimDailyReward() {
             'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
             'totalShards': firebase.firestore.FieldValue.increment(reward)
         };
-
-        // Return update promise so next .then receives the reward
-        return userDocRef.update(updatePayload).then(() => reward);
+        
+        // Return the update promise to chain it correctly
+        return userDocRef.update(updatePayload).then(() => reward); // Pass the reward amount to the next .then()
     })
     .then((claimedReward) => {
-        // Success
+        // This block runs only after the database update is successful
         claimDailyBtn.textContent = `Claimed ${claimedReward} Shards!`;
-        // Update local state for immediate UI responsiveness
-        gameState.totalShards = (gameState.totalShards || 0) + claimedReward;
-        // Refresh UI
-        updateDailyCheckInUI();
-        // Also refresh shop total shards
-        updateShopUI();
-        // Re-enable button after short delay so user sees feedback
-        setTimeout(() => { claimDailyBtn.disabled = true; }, 1000);
+        updateDailyCheckInUI(); // Refresh the UI to show the new state
     })
     .catch(error => {
-        console.error('Error claiming daily reward:', error && error.message ? error.message : error);
-        // Provide user-visible feedback
+        console.error('Error claiming daily reward:', error.message);
         claimDailyBtn.textContent = 'Error! Try Again';
         claimDailyBtn.style.background = 'linear-gradient(to right, #ff4d4d, #c60000)';
 
@@ -1984,9 +1944,8 @@ function claimDailyReward() {
         }, 3000);
     });
 }
-// ---------------------------------------------------------------------------------
     
-    // ---------- REPLACE updateDailyCheckInUI() with this ----------
+    //-- REPLACEMENT FOR: updateDailyCheckInUI() --//
 function updateDailyCheckInUI() {
     if (!currentUser) return;
 
@@ -2003,12 +1962,14 @@ function updateDailyCheckInUI() {
 
         streakCount.textContent = `${userStreak} days`;
 
-        const todayStart = getDayStartMs(Date.now());
-        const lastCheckInStart = getDayStartMs(checkInData.lastCheckIn);
-        const hasClaimedToday = lastCheckInStart === todayStart;
+        const now = new Date();
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const lastCheckIn = checkInData.lastCheckIn ? checkInData.lastCheckIn.toDate() : null;
+        const lastCheckInDay = lastCheckIn ? new Date(lastCheckIn.getFullYear(), lastCheckIn.getMonth(), lastCheckIn.getDate()).getTime() : 0;
+        const hasClaimedToday = lastCheckInDay === todayDate;
 
         calendarDays.innerHTML = '';
-        const rewards = [20, 20, 20, 30, 30, 50, 100];
+        const rewards = [20, 20, 20, 30, 30, 50, 100]; 
 
         for (let i = 1; i <= 7; i++) {
             const dayDiv = document.createElement('div');
@@ -2028,16 +1989,17 @@ function updateDailyCheckInUI() {
             `;
             calendarDays.appendChild(dayDiv);
         }
-
+        
         if (hasClaimedToday) {
             claimDailyBtn.disabled = true;
             let claimedRewardText = "Already Claimed Today";
-            if (userStreak > 0) {
-                const rewardIndex = Math.min(userStreak - 1, 6);
-                const reward = rewards[rewardIndex];
-                claimedRewardText = `Claimed ${reward} Shards Today!`;
+            if(userStreak > 0) {
+                 const rewardIndex = Math.min(userStreak - 1, 6);
+                 const reward = rewards[rewardIndex];
+                 claimedRewardText = `Claimed ${reward} Shards Today!`;
             }
             claimDailyBtn.textContent = claimedRewardText;
+
         } else {
             claimDailyBtn.textContent = "Claim Today's Reward";
             claimDailyBtn.disabled = false;
@@ -2047,7 +2009,6 @@ function updateDailyCheckInUI() {
         console.error('Error updating daily check-in UI:', error);
     });
 }
-// ---------------------------------------------------------------------------------
     
     function showAuthError(message) {
       authError.textContent = message;
@@ -2231,13 +2192,9 @@ highScore: gameState.highScore,
             
             let scoreDisplay;
             if (type === 'score') {
-  // Convert highScore (ms) to seconds with 3 decimals.
-  // Be defensive in case highScore is missing or stored as a string.
-  const raw = Number(data.highScore);
-  const highMs = isFinite(raw) ? raw : 0;
-  const scoreInSeconds = highMs / 1000;
-  scoreDisplay = `${scoreInSeconds.toFixed(3)}s`;
-}
+              // Convert milliseconds to seconds with 3 decimal places for display
+              const scoreInSeconds = (data.highScore || 0) / 1000;
+              scoreDisplay = `${scoreInSeconds.toFixed(3)}s`;
             } else if (type === 'shards') {
               scoreDisplay = '✦ ' + (data.totalShards || 0);
             } else if (type === 'referrals') {
