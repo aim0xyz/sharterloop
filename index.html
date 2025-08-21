@@ -1305,14 +1305,13 @@
     // Firebase configuration - Replace with your own Firebase project config
     // You can find this in your Firebase project settings -> Project settings -> General -> Your apps
     const firebaseConfig = {
-    apiKey: "AIzaSyAqHDZHG626E_U9swnvAbobNxbznWYjByo",
-    authDomain: "shatterloop-a7640.firebaseapp.com",
-    projectId: "shatterloop-a7640",
-    storageBucket: "shatterloop-a7640.firebasestorage.app",
-    messagingSenderId: "568996461864",
-    appId: "1:568996461864:web:92fc542d589667491f241d",
-    measurementId: "G-HRZ1HHS754"
-  };
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -1479,7 +1478,7 @@
         } else {
           currentUser = null;
           // Only show auth screen if not already on it
-          if (!authScreen.style.display === 'flex') {
+          if (authScreen.style.display !== 'flex') {
             showAuthScreen();
           }
         }
@@ -1789,77 +1788,78 @@
         });
     }
     
+    // [FIXED] Corrected the referral code submission logic
     function submitReferralCode() {
-  if (!currentUser) return;
-  
-  const code = friendCodeInput.value.trim().toUpperCase();
-  
-  if (!code) {
-    updateReferralStatus('Please enter a referral code', 'error');
-    return;
-  }
-  
-  // Check if user already has a friend code
-  db.collection('users').doc(currentUser.uid).get()
-    .then(doc => {
-      const userData = doc.data();
-      
-      if (userData.referral.friendCode) {
-        updateReferralStatus('You have already used a referral code', 'error');
-        return;
-      }
-      
-      // Check if code is valid and not user's own code
-      if (code === userData.referral.code) {
-        updateReferralStatus('You cannot use your own referral code', 'error');
-        return;
-      }
-      
-      // Find the referrer
-      return db.collection('users')
-        .where('referral.code', '==', code)
-        .get()
-        .then(snapshot => {
-          if (snapshot.empty) {
-            updateReferralStatus('Invalid referral code', 'error');
+        if (!currentUser) return;
+    
+        const code = friendCodeInput.value.trim().toUpperCase();
+    
+        if (!code) {
+            updateReferralStatus('Please enter a referral code', 'error');
             return;
-          }
-          
-          const referrerDoc = snapshot.docs[0];
-          const referrerId = referrerDoc.id;
-          
-          // Update friend's code in user document
-          return db.collection('users').doc(currentUser.uid).update({
-  'referral.friendCode': code,
-  'totalShards': firebase.firestore.FieldValue.increment(50)
-})
-.then(() => {
-  return referrerDoc.ref.update({
-    'referral.referred': firebase.firestore.FieldValue.increment(1),
-    'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
-    'totalShards': firebase.firestore.FieldValue.increment(50)
-  });
-})
-          .then(() => {
+        }
+    
+        db.collection('users').doc(currentUser.uid).get()
+        .then(doc => {
+            if (!doc.exists) {
+                throw new Error("Current user not found in database.");
+            }
+            const userData = doc.data();
+    
+            if (userData.referral && userData.referral.friendCode) {
+                updateReferralStatus('You have already used a referral code', 'error');
+                return Promise.reject(); // Stop the promise chain
+            }
+    
+            if (userData.referral && code === userData.referral.code) {
+                updateReferralStatus('You cannot use your own referral code', 'error');
+                return Promise.reject(); // Stop the promise chain
+            }
+    
+            // Find the referrer by their code
+            return db.collection('users').where('referral.code', '==', code).get();
+        })
+        .then(snapshot => {
+            if (!snapshot) return; // Chain was stopped
+    
+            if (snapshot.empty) {
+                updateReferralStatus('Invalid referral code', 'error');
+                return Promise.reject(); // Stop the promise chain
+            }
+    
+            const referrerDoc = snapshot.docs[0];
+    
+            // Both updates will run in parallel
+            const userUpdatePromise = db.collection('users').doc(currentUser.uid).update({
+                'referral.friendCode': code,
+                'totalShards': firebase.firestore.FieldValue.increment(50)
+            });
+    
+            const referrerUpdatePromise = referrerDoc.ref.update({
+                'referral.referred': firebase.firestore.FieldValue.increment(1),
+                'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
+                'totalShards': firebase.firestore.FieldValue.increment(50)
+            });
+    
+            return Promise.all([userUpdatePromise, referrerUpdatePromise]);
+        })
+        .then((result) => {
+            if (!result) return; // Chain was stopped
+    
             gameState.totalShards += 50;
             updateReferralStatus('Success! You received 50 shards', 'success');
             friendCodeInput.value = '';
-            
-            // Update UI to show friend code is used
-            friendReferralSection.innerHTML = '<div class="referral-status">You have used the referral code: ' + code + '</div>';
-            
-            loadUserData(); // Reload user data
-          });
+            friendReferralSection.innerHTML = `<div class="referral-status">You have used the referral code: ${code}</div>`;
+            loadUserData(); // Reload data to reflect changes
+        })
+        .catch(error => {
+            if (error) { // Only log/display if it's a real error
+                console.error('Error submitting referral code:', error);
+                updateReferralStatus('Error: ' + error.message, 'error');
+            }
         });
-      })
-      .catch(error => {
-        updateReferralStatus('Error: ' + error.message, 'error');
-      });
     }
-    .catch(error => {
-      console.error('Error:', error);
-    });
-}
+
     
     function updateReferralStatus(message, type) {
       referralStatus.textContent = message;
@@ -1891,18 +1891,16 @@
           }
           
           // Calculate streak
-// Calculate streak
-let streak = userData.dailyCheckIn.streak || 0;
-const yesterday = new Date(today);
-yesterday.setDate(yesterday.getDate() - 1);
-const yesterdayTime = yesterday.getTime();
-const lastCheckInDate = userData.dailyCheckIn.lastCheckIn ? userData.dailyCheckIn.lastCheckIn.toDate() : null;
-
-if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
-  streak++;
-} else {
-  streak = 1;
-}
+          let streak = userData.dailyCheckIn.streak || 0;
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayTime = yesterday.getTime();
+          
+          if (lastCheckInDay === yesterdayTime) {
+            streak++;
+          } else {
+            streak = 1;
+          }
           
           // Calculate reward based on streak
           let reward = 20; // Base reward
@@ -1981,8 +1979,6 @@ if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
             
             let isCompleted = false;
             // A day is completed if it was checked in, and is within the current streak.
-            // This simplified check assumes the user can only claim for the *current* day.
-            // For historical completed days, we mark them if their date is before today and they contributed to the streak.
             if (lastCheckIn && dayDateValue < todayDate && dayDateValue >= (todayDate - (checkInData.streak - (lastCheckInDay === todayDate ? 1 : 0)) * 86400000)) {
                 isCompleted = true;
             } else if (dayDateValue === todayDate && lastCheckInDay === todayDate) { // Today is completed
@@ -2131,25 +2127,28 @@ if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
     }
     
     function updateReferralUI() {
-  if (!currentUser) return;
-  
-  myReferralCode.textContent = gameState.referral.code || 'LOADING...';
-  friendsReferred.textContent = gameState.referral.referred || '0';
-  referralShards.textContent = gameState.referral.shardsEarned || '0';
+      if (!currentUser) return;
+      
+      myReferralCode.textContent = gameState.referral.code || 'LOADING...';
+      friendsReferred.textContent = gameState.referral.referred || '0';
+      referralShards.textContent = gameState.referral.shardsEarned || '0';
 
-  if (gameState.referral.friendCode) {
-    friendReferralSection.innerHTML = '<div class="referral-status">You have used the referral code: ' + gameState.referral.friendCode + '</div>';
-  } else {
-    friendReferralSection.innerHTML = `
-      <div class="friend-referral-title">Enter Friend's Code</div>
-      <input type="text" class="friend-code-input" id="friendCodeInput" placeholder="Enter code" maxlength="8">
-      <button class="submit-code-btn" id="submitCodeBtn">Submit</button>
-      <div class="referral-status" id="referralStatus"></div>
-    `;
-    // Ensure event listeners for submit button are attached correctly
-    document.getElementById('submitCodeBtn').addEventListener('click', submitReferralCode);
-  }
-}
+      if (gameState.referral.friendCode) {
+        friendReferralSection.innerHTML = '<div class="referral-status">You have used the referral code: ' + gameState.referral.friendCode + '</div>';
+      } else {
+        // Only modify if the input section is not already there
+        if (!document.getElementById('friendCodeInput')) {
+            friendReferralSection.innerHTML = `
+                <div class="friend-referral-title">Enter Friend's Code</div>
+                <input type="text" class="friend-code-input" id="friendCodeInput" placeholder="Enter code" maxlength="8">
+                <button class="submit-code-btn" id="submitCodeBtn">Submit</button>
+                <div class="referral-status" id="referralStatus"></div>
+            `;
+            // Re-bind the event listener to the new button
+            document.getElementById('submitCodeBtn').addEventListener('click', submitReferralCode);
+        }
+      }
+    }
     
     function saveUserData() {
       if (!currentUser) return;
@@ -2168,75 +2167,74 @@ if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
       });
     }
     
+    // [FIXED] Leaderboard now formats the time-based score
     function updateLeaderboard(type = 'score') {
-  leaderboardList.innerHTML = '<div class="spinner"></div>';
-  
-  let field, collection;
-  
-  if (type === 'referrals') {
-    collection = 'users';
-    field = 'referral.referred';
-  } else {
-    collection = 'users';
-    field = type === 'score' ? 'highScore' : 'totalShards';
-  }
-  
-  db.collection(collection)
-    .orderBy(field, 'desc')
-    .limit(10)
-    .get()
-    .then((snapshot) => {
-      leaderboardList.innerHTML = '';
+      leaderboardList.innerHTML = '<div class="spinner"></div>';
       
-      if (snapshot.empty) {
-        leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
-        return;
+      let field, collection;
+      
+      if (type === 'referrals') {
+        collection = 'users';
+        field = 'referral.referred';
+      } else {
+        collection = 'users';
+        field = type === 'score' ? 'highScore' : 'totalShards';
       }
       
-      snapshot.forEach((doc, index) => {
-        const data = doc.data();
-        const isCurrentUser = currentUser && doc.id === currentUser.uid;
-        const displayName = data.username || data.displayName || 'Anonymous';
-        
-        let scoreDisplay;
-        if (type === 'score') {
-          // --- START MODIFICATION HERE ---
-          // Convert milliseconds to seconds with 3 decimal places for display
-          const scoreInSeconds = (data.highScore || 0) / 1000;
-          scoreDisplay = `${scoreInSeconds.toFixed(3)}s`; // Format as "XX.YYYs"
-          // --- END MODIFICATION HERE ---
-        } else if (type === 'shards') {
-          scoreDisplay = '✦ ' + (data.totalShards || 0);
-        } else if (type === 'referrals') {
-          scoreDisplay = (data.referral?.referred || 0) + ' referrals';
-        }
-        
-        const itemHTML = `
-          <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
-            <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
-            <div class="leaderboard-player">
-              <div class="leaderboard-name">${displayName}</div>
-              <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
-                ${scoreDisplay}
+      db.collection(collection)
+        .orderBy(field, 'desc')
+        .limit(10)
+        .get()
+        .then((snapshot) => {
+          leaderboardList.innerHTML = '';
+          
+          if (snapshot.empty) {
+            leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
+            return;
+          }
+          
+          snapshot.forEach((doc, index) => {
+            const data = doc.data();
+            const isCurrentUser = currentUser && doc.id === currentUser.uid;
+            const displayName = data.username || data.displayName || 'Anonymous';
+            
+            let scoreDisplay;
+            if (type === 'score') {
+              // Convert milliseconds to seconds with 3 decimal places for display
+              const scoreInSeconds = (data.highScore || 0) / 1000;
+              scoreDisplay = `${scoreInSeconds.toFixed(3)}s`;
+            } else if (type === 'shards') {
+              scoreDisplay = '✦ ' + (data.totalShards || 0);
+            } else if (type === 'referrals') {
+              scoreDisplay = (data.referral?.referred || 0) + ' referrals';
+            }
+            
+            const itemHTML = `
+              <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
+                <div class="leaderboard-player">
+                  <div class="leaderboard-name">${displayName}</div>
+                  <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
+                    ${scoreDisplay}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        `;
-        
-        leaderboardList.innerHTML += itemHTML;
-      });
-    })
-    .catch((error) => {
-      console.error("Error getting leaderboard:", error);
-      leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
-    });
-}
+            `;
+            
+            leaderboardList.innerHTML += itemHTML;
+          });
+        })
+        .catch((error) => {
+          console.error("Error getting leaderboard:", error);
+          leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
+        });
+    }
     
+    // [FIXED] Game start time is now recorded for fair scoring
     function resetGameState() {
       gameState.score = 0;
       gameState.currentRunShards = 0;
-      gameState.startTime = Date.now();
-      gameState.gameStartTime = Date.now();
+      gameState.gameStartTime = Date.now(); // Record start time for scoring
       gameState.speedMultiplier = 1.0;
       gameState.player = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, size: PLAYER_SIZE, isAlive: true, trail: [] };
       gameState.obstacles = [];
@@ -2508,7 +2506,7 @@ if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
         createParticleExplosion(gameState.player.x, gameState.player.y, 40, '#00f3ff');
         
         setTimeout(() => {
-            const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000); // Use gameStartTime for consistent duration
+            const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
             timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
             finalScore.textContent = gameState.score;
             shardsCollected.textContent = gameState.currentRunShards;
@@ -2561,76 +2559,70 @@ if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
         }
     }
 
-// In your <script> tag:
+    // [FIXED] Game logic updated for time-based scoring and speed
+    function updateGame() {
+        if (!gameState.gameActive) return;
 
-function updateGame() {
-  if (!gameState.gameActive) return;
-  
-  const currentTime = Date.now();
-  
-  // Update speed multiplier (0.1% increase per second)
-  // This calculation should still use seconds for consistent speed scaling.
-  const elapsedSecondsForSpeed = (currentTime - gameState.gameStartTime) / 1000;
-  gameState.speedMultiplier = 1.0 + (elapsedSecondsForSpeed * 0.001);
-  
-  // --- START MODIFICATION ---
+        const currentTime = Date.now();
+        const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
 
-  // Calculate the score directly in milliseconds
-  const elapsedMilliseconds = currentTime - gameState.gameStartTime;
-  gameState.score = elapsedMilliseconds; // Score is now in milliseconds
-  scoreValue.textContent = gameState.score; // Update the displayed score
+        // Calculate elapsed time in seconds for consistent speed scaling
+        const elapsedSecondsForSpeed = (currentTime - gameState.gameStartTime) / 1000;
+        
+        // Update speed multiplier based on time, not score (0.1% increase per second)
+        gameState.speedMultiplier = 1.0 + (elapsedSecondsForSpeed * 0.001);
 
-  // --- END MODIFICATION ---
+        // Update score based on elapsed milliseconds for fairness
+        gameState.score = currentTime - gameState.gameStartTime;
+        scoreValue.textContent = gameState.score;
 
-  const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
-  const isFracture = gameState.mode === 'fracture';
-  const basePathSpeed = isFracture ? 4 : 2;
-  // The path speed should still scale with the speed multiplier based on seconds.
-  const pathSpeed = basePathSpeed * gameState.speedMultiplier;
+        const isFracture = gameState.mode === 'fracture';
+        const basePathSpeed = isFracture ? 4 : 2;
+        const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
-  gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
-  gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
-  
-  gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-  if (gameState.player.trail.length > 20) gameState.player.trail.shift();
-  gameState.player.trail.forEach(p => p.alpha -= 0.05);
+        // Update Player
+        gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
+        gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
 
-  gameState.path.nextY -= pathSpeed * timeFactor;
-  if (gameState.path.nextY <= 0) {
-      createObstacleLayer(-30);
-      const baseDistance = isFracture ? 80 : 120;
-      gameState.path.nextY = baseDistance + Math.random() * 40;
-  }
-  
-  const shardSpawnRate = isFracture ? 0.03 : 0.015;
-  if (Math.random() < shardSpawnRate * timeFactor) createShard();
-  
-  gameState.obstacles.forEach((obs, i) => {
-    // Obstacle speed still scales with the original score calculation (now in milliseconds),
-    // this might make them speed up much faster depending on how you want difficulty to scale.
-    // If you want difficulty to scale based on seconds of survival, you might use elapsedSecondsForSpeed here.
-    obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor; 
-    
-    if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
-  });
-  
-  gameState.shardsCollectible.forEach((shard, i) => {
-    shard.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
-    const dx = shard.x - gameState.player.x;
-    const dy = shard.y - gameState.player.y;
-    const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
-    if (Math.sqrt(dx*dx + dy*dy) < PLAYER_SIZE / 2 + magnetRadius) {
-      gameState.currentRunShards++;
-      shardValue.textContent = gameState.currentRunShards;
-      createParticleExplosion(shard.x, shard.y, 10, '#f300ff');
-      gameState.shardsCollectible.splice(i, 1);
-    } else if (shard.y > GAME_HEIGHT + 20) {
-      gameState.shardsCollectible.splice(i, 1);
+        gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
+        if (gameState.player.trail.length > 20) gameState.player.trail.shift();
+        gameState.player.trail.forEach(p => p.alpha -= 0.05);
+
+        // Update Game World
+        gameState.path.nextY -= pathSpeed * timeFactor;
+        if (gameState.path.nextY <= 0) {
+            createObstacleLayer(-30);
+            const baseDistance = isFracture ? 80 : 120;
+            gameState.path.nextY = baseDistance + Math.random() * 40;
+        }
+
+        const shardSpawnRate = isFracture ? 0.03 : 0.015;
+        if (Math.random() < shardSpawnRate * timeFactor) createShard();
+
+        // Update Obstacles
+        gameState.obstacles.forEach((obs, i) => {
+            obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor;
+            if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
+        });
+
+        // Update Shards
+        gameState.shardsCollectible.forEach((shard, i) => {
+            shard.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
+            const dx = shard.x - gameState.player.x;
+            const dy = shard.y - gameState.player.y;
+            const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
+            if (Math.sqrt(dx * dx + dy * dy) < PLAYER_SIZE / 2 + magnetRadius) {
+                gameState.currentRunShards++;
+                shardValue.textContent = gameState.currentRunShards;
+                createParticleExplosion(shard.x, shard.y, 10, '#f300ff');
+                gameState.shardsCollectible.splice(i, 1);
+            } else if (shard.y > GAME_HEIGHT + 20) {
+                gameState.shardsCollectible.splice(i, 1);
+            }
+        });
+
+        checkCollisions();
     }
-  });
-  
-  checkCollisions();
-}
     
     function checkCollisions() {
         if (!gameState.player.isAlive) return;
