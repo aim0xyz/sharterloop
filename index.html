@@ -1830,17 +1830,16 @@
           
           // Update friend's code in user document
           return db.collection('users').doc(currentUser.uid).update({
-            'referral.friendCode': code,
-            'totalShards': firebase.firestore.FieldValue.increment(50)
-          })
-          .then(() => {
-            // Update referrer's stats using referrerDoc.ref
-            return referrerDoc.ref.update({
-              'referral.referred': firebase.firestore.FieldValue.increment(1),
-              'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
-              'totalShards': firebase.firestore.FieldValue.increment(50)
-            });
-          })
+  'referral.friendCode': code,
+  'totalShards': firebase.firestore.FieldValue.increment(50)
+})
+.then(() => {
+  return referrerDoc.ref.update({
+    'referral.referred': firebase.firestore.FieldValue.increment(1),
+    'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
+    'totalShards': firebase.firestore.FieldValue.increment(50)
+  });
+})
           .then(() => {
             gameState.totalShards += 50;
             updateReferralStatus('Success! You received 50 shards', 'success');
@@ -1892,13 +1891,14 @@
           }
           
           // Calculate streak
+// Calculate streak
 let streak = userData.dailyCheckIn.streak || 0;
 const yesterday = new Date(today);
 yesterday.setDate(yesterday.getDate() - 1);
 const yesterdayTime = yesterday.getTime();
 const lastCheckInDate = userData.dailyCheckIn.lastCheckIn ? userData.dailyCheckIn.lastCheckIn.toDate() : null;
 
-if (lastCheckInDate && lastCheckInDate >= yesterday) {
+if (lastCheckInDate && lastCheckInDate.getTime() >= yesterdayTime) {
   streak++;
 } else {
   streak = 1;
