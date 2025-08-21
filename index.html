@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Shatterloop - Aether Drifter</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
   <style>
     * {
       margin: 0;
@@ -238,34 +244,6 @@
       color: #f300ff;
     }
     
-    .path-reward {
-      background: rgba(0, 0, 30, 0.7);
-      border-radius: 15px;
-      padding: 15px;
-      margin-top: 15px;
-      border: 1px solid #0066ff;
-    }
-    
-    .path-reward h3 {
-      color: #00a2ff;
-      margin-bottom: 10px;
-      font-size: 18px;
-    }
-    
-    .path-reward p {
-      color: #ccc;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-    
-    .path-reward.fracture {
-      border-color: #c700ff;
-    }
-    
-    .path-reward.fracture h3 {
-      color: #f300ff;
-    }
-    
     .menu-btn-container {
       display: flex;
       flex-direction: column;
@@ -274,7 +252,7 @@
       gap: 15px;
     }
     
-    #shopScreen {
+    #shopScreen, #leaderboardScreen, #authScreen {
       position: absolute;
       top: 0;
       left: 0;
@@ -290,14 +268,14 @@
       overflow-y: auto;
     }
     
-    #shopScreen h1 {
+    #shopScreen h1, #leaderboardScreen h1, #authScreen h1 {
       font-size: 36px;
       margin-bottom: 25px;
       color: #f300ff;
       text-align: center;
     }
     
-    .shop-header {
+    .shop-header, .leaderboard-header {
       display: flex;
       justify-content: space-between;
       width: 100%;
@@ -325,12 +303,6 @@
       margin-bottom: 20px;
       border: 1px solid #440088;
       transition: all 0.3s ease;
-    }
-    
-    .upgrade-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(123, 0, 255, 0.3);
-      border-color: #7b00ff;
     }
     
     .upgrade-header {
@@ -460,17 +432,321 @@
       transform: scale(0.95);
     }
     
+    /* Auth screen specific styles */
+    #authScreen {
+      background: linear-gradient(135deg, #0f0c4d, #000);
+    }
+    
+    .auth-container {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(20, 20, 40, 0.7);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .auth-input {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      background: rgba(10, 10, 20, 0.7);
+      color: white;
+      font-size: 16px;
+      outline: none;
+    }
+    
+    .auth-input:focus {
+      border-color: #00a2ff;
+      box-shadow: 0 0 10px rgba(0, 162, 255, 0.4);
+    }
+    
+    .auth-btn {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: 50px;
+      border: none;
+      background: linear-gradient(to right, #0047ff, #00a2ff);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .auth-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+      color: #aaa;
+    }
+    
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #333;
+    }
+    
+    .auth-divider::before {
+      margin-right: 10px;
+    }
+    
+    .auth-divider::after {
+      margin-left: 10px;
+    }
+    
+    .social-btn {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border-radius: 50px;
+      border: 1px solid #333;
+      background: rgba(10, 10, 20, 0.7);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .social-btn img {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+    
+    .social-btn.google {
+      background: white;
+      color: #333;
+    }
+    
+    .social-btn.apple {
+      background: black;
+      color: white;
+      border-color: white;
+    }
+    
+    .auth-switch {
+      margin-top: 20px;
+      color: #aaa;
+    }
+    
+    .auth-switch-btn {
+      color: #00a2ff;
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    
+    .auth-error {
+      color: #ff4d4d;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .user-profile {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+      background: rgba(20, 20, 40, 0.7);
+      border-radius: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 24px;
+      color: white;
+    }
+    
+    .user-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .user-email {
+      font-size: 14px;
+      color: #aaa;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .logout-btn {
+      background: rgba(255, 77, 77, 0.2);
+      color: #ff4d4d;
+      border: 1px solid #ff4d4d;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    /* Leaderboard specific styles */
+    .leaderboard-list {
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: rgba(20, 20, 40, 0.7);
+      border-radius: 15px;
+      margin-bottom: 10px;
+    }
+    
+    .leaderboard-rank {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(to right, #0047ff, #00a2ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .leaderboard-rank.top-1 {
+      background: linear-gradient(to right, #ffd700, #ffaa00);
+      color: #000;
+    }
+    
+    .leaderboard-rank.top-2 {
+      background: linear-gradient(to right, #c0c0c0, #e0e0e0);
+      color: #000;
+    }
+    
+    .leaderboard-rank.top-3 {
+      background: linear-gradient(to right, #cd7f32, #e9967a);
+      color: #000;
+    }
+    
+    .leaderboard-player {
+      flex: 1;
+      margin-left: 15px;
+      text-align: left;
+    }
+    
+    .leaderboard-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .leaderboard-score {
+      font-size: 14px;
+      color: #00f3ff;
+    }
+    
+    .leaderboard-score.shards {
+      color: #f300ff;
+    }
+    
+    .leaderboard-tabs {
+      display: flex;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+    }
+    
+    .leaderboard-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: rgba(20, 20, 40, 0.7);
+      cursor: pointer;
+    }
+    
+    .leaderboard-tab:first-child {
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    
+    .leaderboard-tab:last-child {
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+    
+    .leaderboard-tab.active {
+      background: linear-gradient(to right, #0047ff, #00a2ff);
+      font-weight: bold;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #00f3ff;
+      animation: spin 1s infinite linear;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* User badge in menu */
+    .user-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(20, 20, 40, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      border: 2px solid #00a2ff;
+      pointer-events: auto;
+    }
+    
     /* Responsive adjustments */
     @media (max-height: 650px) {
       .menu-btn {
         padding: 12px 30px;
         font-size: 18px;
       }
-      
       #menuScreen h1 {
         font-size: 36px;
       }
-      
       .score-display, .shard-count {
         font-size: 20px;
         top: 15px;
@@ -481,11 +757,9 @@
 <body>
   <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
-    
     <div id="uiContainer">
       <div class="score-display">Score: <span id="scoreValue">0</span></div>
       <div class="shard-count">✦ <span id="shardValue">0</span></div>
-      
       <div class="time-bend-ui" id="timeBendBtn">
         <div class="time-bend-icon">⏳</div>
         <div class="time-bend-cooldown" id="timeBendCooldown"></div>
@@ -499,11 +773,12 @@
       <button class="menu-btn" id="safeModeBtn">SAFE PATH</button>
       <button class="menu-btn fracture" id="fractureModeBtn">FRACTURE PATH</button>
       <button class="menu-btn" id="shopBtn">UPGRADES & RELICS</button>
+      <button class="menu-btn" id="leaderboardBtn">LEADERBOARD</button>
+      <div class="user-badge" id="userBadge">👤</div>
     </div>
     
     <div id="gameOverScreen">
       <h2>Run Over ❌</h2>
-      
       <div class="stats-container">
         <div class="stat-row">
           <span class="stat-label">Time Survived:</span>
@@ -518,7 +793,6 @@
           <span class="stat-value shards" id="shardsCollected">0</span>
         </div>
       </div>
-      
       <div class="menu-btn-container">
         <button class="menu-btn" id="retryBtn">Retry ⟳</button>
         <button class="menu-btn fracture" id="fractureRetryBtn">Take Fracture Path</button>
@@ -528,12 +802,10 @@
     
     <div id="shopScreen">
       <h1>UPGRADE STATION</h1>
-      
       <div class="shop-header">
         <div>Total Shards:</div>
         <div class="total-shards">✦ <span id="totalShards">0</span></div>
       </div>
-      
       <div class="upgrade-card">
         <div class="upgrade-header">
           <div class="upgrade-title">Time Bend Capacity</div>
@@ -545,7 +817,6 @@
         </div>
         <button class="buy-btn" id="upgradeTimeBendBtn">Upgrade</button>
       </div>
-      
       <div class="upgrade-card">
         <div class="upgrade-header">
           <div class="upgrade-title">Shard Magnet</div>
@@ -557,7 +828,6 @@
         </div>
         <button class="buy-btn" id="upgradeMagnetBtn">Upgrade</button>
       </div>
-      
       <div class="upgrade-card">
         <div class="upgrade-header">
           <div class="upgrade-title">Phantom Relic</div>
@@ -566,8 +836,73 @@
         <div class="upgrade-desc">Grants ability to phase through one obstacle per run. Purchased once.</div>
         <button class="buy-btn" id="buyRelicBtn">Purchase</button>
       </div>
-      
       <button class="menu-btn" id="backToMenuBtn" style="margin-top: 20px;">Back to Main Menu</button>
+    </div>
+    
+    <div id="leaderboardScreen">
+      <h1>LEADERBOARD</h1>
+      <div class="leaderboard-tabs">
+        <div class="leaderboard-tab active" data-type="score">Highest Score</div>
+        <div class="leaderboard-tab" data-type="shards">Most Shards</div>
+      </div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div class="spinner"></div>
+      </div>
+      <button class="menu-btn" id="leaderboardBackBtn" style="margin-top: 20px;">Back to Main Menu</button>
+    </div>
+    
+    <div id="authScreen">
+      <h1 id="authTitle">Sign In</h1>
+      
+      <div class="auth-container" id="signInContainer">
+        <div class="auth-error" id="authError"></div>
+        <input type="email" class="auth-input" id="emailInput" placeholder="Email" autocomplete="email">
+        <input type="password" class="auth-input" id="passwordInput" placeholder="Password" autocomplete="current-password">
+        <button class="auth-btn" id="signInBtn">Sign In</button>
+        
+        <div class="auth-divider">or</div>
+        
+        <button class="social-btn google" id="googleSignInBtn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+          Sign in with Google
+        </button>
+        
+        <button class="social-btn apple" id="appleSignInBtn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/apple.svg" alt="Apple">
+          Sign in with Apple
+        </button>
+        
+        <div class="auth-switch">
+          Don't have an account? <button class="auth-switch-btn" id="switchToSignUpBtn">Sign Up</button>
+        </div>
+      </div>
+      
+      <div class="auth-container" id="signUpContainer" style="display: none;">
+        <div class="auth-error" id="signUpError"></div>
+        <input type="text" class="auth-input" id="nameInput" placeholder="Display Name" autocomplete="name">
+        <input type="email" class="auth-input" id="signUpEmailInput" placeholder="Email" autocomplete="email">
+        <input type="password" class="auth-input" id="signUpPasswordInput" placeholder="Password" autocomplete="new-password">
+        <input type="password" class="auth-input" id="confirmPasswordInput" placeholder="Confirm Password" autocomplete="new-password">
+        <button class="auth-btn" id="signUpBtn">Sign Up</button>
+        
+        <div class="auth-switch">
+          Already have an account? <button class="auth-switch-btn" id="switchToSignInBtn">Sign In</button>
+        </div>
+      </div>
+      
+      <div id="userProfileContainer" style="display: none;">
+        <div class="user-profile">
+          <div class="user-info">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div>
+              <div class="user-name" id="userName">User Name</div>
+              <div class="user-email" id="userEmail">user@example.com</div>
+            </div>
+          </div>
+          <button class="logout-btn" id="logoutBtn">Log Out</button>
+        </div>
+        <button class="menu-btn" id="authBackBtn">Back to Menu</button>
+      </div>
     </div>
     
     <div class="relic-popup" id="relicPopup">
@@ -579,6 +914,23 @@
   </div>
 
   <script>
+    // Firebase configuration - Replace with your own Firebase project config
+    const firebaseConfig = {
+    apiKey: "AIzaSyAqHDZHG626E_U9swnvAbobNxbznWYjByo",
+    authDomain: "shatterloop-a7640.firebaseapp.com",
+    projectId: "shatterloop-a7640",
+    storageBucket: "shatterloop-a7640.firebasestorage.app",
+    messagingSenderId: "568996461864",
+    appId: "1:568996461864:web:92fc542d589667491f241d",
+    measurementId: "G-HRZ1HHS754"
+  };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUser = null;
+
     // Game constants
     const GAME_WIDTH = 400;
     const GAME_HEIGHT = 800;
@@ -598,7 +950,9 @@
       relics: { phantomPhase: false, phantomPhaseUsed: false },
       gameActive: false,
       currentRunShards: 0,
-      nextObstacleY: GAME_HEIGHT - 300, 
+      path: { lastX: GAME_WIDTH / 2, nextY: GAME_HEIGHT - 200 },
+      highScore: 0,
+      totalShardsCollected: 0
     };
     
     // DOM Elements
@@ -612,19 +966,55 @@
     const finalScore = document.getElementById('finalScore');
     const shardsCollected = document.getElementById('shardsCollected');
     const timeSurvived = document.getElementById('timeSurvived');
-    const totalShards = document.getElementById('totalShards');
+    const totalShardsEl = document.getElementById('totalShards');
     
     const menuScreen = document.getElementById('menuScreen');
     const safeModeBtn = document.getElementById('safeModeBtn');
     const fractureModeBtn = document.getElementById('fractureModeBtn');
     const shopBtn = document.getElementById('shopBtn');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const userBadge = document.getElementById('userBadge');
     const retryBtn = document.getElementById('retryBtn');
     const fractureRetryBtn = document.getElementById('fractureRetryBtn');
     const menuBtn = document.getElementById('menuBtn');
+    
     const shopScreen = document.getElementById('shopScreen');
     const backToMenuBtn = document.getElementById('backToMenuBtn');
     
-    // Shop UI
+    const leaderboardScreen = document.getElementById('leaderboardScreen');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const leaderboardTabs = document.querySelectorAll('.leaderboard-tab');
+    const leaderboardBackBtn = document.getElementById('leaderboardBackBtn');
+    
+    const authScreen = document.getElementById('authScreen');
+    const authTitle = document.getElementById('authTitle');
+    const signInContainer = document.getElementById('signInContainer');
+    const signUpContainer = document.getElementById('signUpContainer');
+    const userProfileContainer = document.getElementById('userProfileContainer');
+    
+    const emailInput = document.getElementById('emailInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const signInBtn = document.getElementById('signInBtn');
+    const googleSignInBtn = document.getElementById('googleSignInBtn');
+    const appleSignInBtn = document.getElementById('appleSignInBtn');
+    const switchToSignUpBtn = document.getElementById('switchToSignUpBtn');
+    
+    const nameInput = document.getElementById('nameInput');
+    const signUpEmailInput = document.getElementById('signUpEmailInput');
+    const signUpPasswordInput = document.getElementById('signUpPasswordInput');
+    const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+    const signUpBtn = document.getElementById('signUpBtn');
+    const switchToSignInBtn = document.getElementById('switchToSignInBtn');
+    
+    const authError = document.getElementById('authError');
+    const signUpError = document.getElementById('signUpError');
+    
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const authBackBtn = document.getElementById('authBackBtn');
+    
     const timeBendCostEl = document.getElementById('timeBendCost');
     const timeBendLevelEl = document.getElementById('timeBendLevel');
     const magnetCostEl = document.getElementById('magnetCost');
@@ -637,7 +1027,313 @@
       canvas.width = GAME_WIDTH;
       canvas.height = GAME_HEIGHT;
       setupEventListeners();
+      setupAuthListeners();
       gameLoop();
+      
+      // Listen for auth state changes
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          currentUser = user;
+          loadUserData();
+          updateUserProfile();
+        } else {
+          currentUser = null;
+        }
+        updateAuthUI();
+      });
+    }
+    
+    function setupAuthListeners() {
+      // Sign In
+      signInBtn.addEventListener('click', () => {
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        
+        if (!email || !password) {
+          showAuthError('Please enter both email and password');
+          return;
+        }
+        
+        auth.signInWithEmailAndPassword(email, password)
+          .then(() => {
+            authScreen.style.display = 'none';
+            menuScreen.style.display = 'flex';
+          })
+          .catch(error => {
+            showAuthError(error.message);
+          });
+      });
+      
+      // Google Sign In
+      googleSignInBtn.addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+          .then(() => {
+            authScreen.style.display = 'none';
+            menuScreen.style.display = 'flex';
+          })
+          .catch(error => {
+            showAuthError(error.message);
+          });
+      });
+      
+      // Apple Sign In
+      appleSignInBtn.addEventListener('click', () => {
+        const provider = new firebase.auth.OAuthProvider('apple.com');
+        auth.signInWithPopup(provider)
+          .then(() => {
+            authScreen.style.display = 'none';
+            menuScreen.style.display = 'flex';
+          })
+          .catch(error => {
+            showAuthError(error.message);
+          });
+      });
+      
+      // Sign Up
+      signUpBtn.addEventListener('click', () => {
+        const name = nameInput.value;
+        const email = signUpEmailInput.value;
+        const password = signUpPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (!name || !email || !password || !confirmPassword) {
+          showSignUpError('Please fill in all fields');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          showSignUpError('Passwords do not match');
+          return;
+        }
+        
+        auth.createUserWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            return userCredential.user.updateProfile({
+              displayName: name
+            }).then(() => {
+              // Create user document in Firestore
+              db.collection('users').doc(userCredential.user.uid).set({
+                displayName: name,
+                email: email,
+                totalShards: 0,
+                highScore: 0,
+                upgrades: {
+                  timeBendLevel: 1,
+                  shardMagnetLevel: 0
+                },
+                relics: {
+                  phantomPhase: false
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              }).then(() => {
+                authScreen.style.display = 'none';
+                menuScreen.style.display = 'flex';
+              });
+            });
+          })
+          .catch(error => {
+            showSignUpError(error.message);
+          });
+      });
+      
+      // Logout
+      logoutBtn.addEventListener('click', () => {
+        auth.signOut().then(() => {
+          authScreen.style.display = 'none';
+          menuScreen.style.display = 'flex';
+        }).catch((error) => {
+          console.error('Logout error:', error);
+        });
+      });
+      
+      // Switch between sign in and sign up
+      switchToSignUpBtn.addEventListener('click', () => {
+        signInContainer.style.display = 'none';
+        signUpContainer.style.display = 'block';
+        authTitle.textContent = 'Sign Up';
+      });
+      
+      switchToSignInBtn.addEventListener('click', () => {
+        signUpContainer.style.display = 'none';
+        signInContainer.style.display = 'block';
+        authTitle.textContent = 'Sign In';
+      });
+      
+      // Back button from auth screen
+      authBackBtn.addEventListener('click', () => {
+        authScreen.style.display = 'none';
+        menuScreen.style.display = 'flex';
+      });
+      
+      // User badge click
+      userBadge.addEventListener('click', () => {
+        showAuthScreen();
+      });
+    }
+    
+    function showAuthError(message) {
+      authError.textContent = message;
+      authError.style.display = 'block';
+      setTimeout(() => {
+        authError.style.display = 'none';
+      }, 5000);
+    }
+    
+    function showSignUpError(message) {
+      signUpError.textContent = message;
+      signUpError.style.display = 'block';
+      setTimeout(() => {
+        signUpError.style.display = 'none';
+      }, 5000);
+    }
+    
+    function updateAuthUI() {
+      if (currentUser) {
+        // User is signed in
+        signInContainer.style.display = 'none';
+        signUpContainer.style.display = 'none';
+        userProfileContainer.style.display = 'block';
+        
+        // Update user profile display
+        if (currentUser.photoURL) {
+          userAvatar.innerHTML = `<img src="${currentUser.photoURL}" alt="${currentUser.displayName}" style="width: 100%; height: 100%; border-radius: 50%;">`;
+        } else {
+          // Use first letter of name as avatar
+          userAvatar.textContent = currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : '👤';
+        }
+        
+        userName.textContent = currentUser.displayName || 'Anonymous';
+        userEmail.textContent = currentUser.email || '';
+        
+        // Update user badge in menu
+        userBadge.innerHTML = currentUser.photoURL ? 
+          `<img src="${currentUser.photoURL}" alt="${currentUser.displayName}" style="width: 100%; height: 100%; border-radius: 50%;">` : 
+          (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : '👤');
+        
+        authTitle.textContent = 'User Profile';
+      } else {
+        // User is signed out
+        signInContainer.style.display = 'block';
+        signUpContainer.style.display = 'none';
+        userProfileContainer.style.display = 'none';
+        userBadge.textContent = '👤';
+        authTitle.textContent = 'Sign In';
+      }
+    }
+    
+    function loadUserData() {
+      if (!currentUser) return;
+      
+      db.collection('users').doc(currentUser.uid).get()
+        .then((doc) => {
+          if (doc.exists) {
+            const userData = doc.data();
+            gameState.totalShards = userData.totalShards || 0;
+            gameState.upgrades.timeBendLevel = userData.upgrades?.timeBendLevel || 1;
+            gameState.upgrades.shardMagnetLevel = userData.upgrades?.shardMagnetLevel || 0;
+            gameState.relics.phantomPhase = userData.relics?.phantomPhase || false;
+            gameState.highScore = userData.highScore || 0;
+            
+            updateShopUI();
+          } else {
+            // Create user document if it doesn't exist
+            db.collection('users').doc(currentUser.uid).set({
+              displayName: currentUser.displayName || 'Anonymous',
+              email: currentUser.email,
+              totalShards: 0,
+              highScore: 0,
+              upgrades: {
+                timeBendLevel: 1,
+                shardMagnetLevel: 0
+              },
+              relics: {
+                phantomPhase: false
+              },
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading user data:", error);
+        });
+    }
+    
+    function saveUserData() {
+      if (!currentUser) return;
+      
+      db.collection('users').doc(currentUser.uid).update({
+        totalShards: gameState.totalShards,
+        highScore: Math.max(gameState.highScore, gameState.score),
+        upgrades: {
+          timeBendLevel: gameState.upgrades.timeBendLevel,
+          shardMagnetLevel: gameState.upgrades.shardMagnetLevel
+        },
+        relics: {
+          phantomPhase: gameState.relics.phantomPhase
+        },
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch((error) => {
+        console.error("Error saving user data:", error);
+      });
+    }
+    
+    function updateLeaderboard(type = 'score') {
+      leaderboardList.innerHTML = '<div class="spinner"></div>';
+      
+      const field = type === 'score' ? 'highScore' : 'totalShards';
+      
+      db.collection('users')
+        .orderBy(field, 'desc')
+        .limit(10)
+        .get()
+        .then((snapshot) => {
+          leaderboardList.innerHTML = '';
+          
+          if (snapshot.empty) {
+            leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
+            return;
+          }
+          
+          snapshot.forEach((doc, index) => {
+            const data = doc.data();
+            const isCurrentUser = currentUser && doc.id === currentUser.uid;
+            
+            const itemHTML = `
+              <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
+                <div class="leaderboard-player">
+                  <div class="leaderboard-name">${data.displayName || 'Anonymous'}</div>
+                  <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
+                    ${type === 'shards' ? '✦ ' + data.totalShards : data.highScore}
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            leaderboardList.innerHTML += itemHTML;
+          });
+        })
+        .catch((error) => {
+          console.error("Error getting leaderboard:", error);
+          leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
+        });
+    }
+    
+    function updateUserProfile() {
+      if (!currentUser) return;
+      
+      // If user doesn't have a display name, update it from the database
+      if (!currentUser.displayName) {
+        db.collection('users').doc(currentUser.uid).get()
+          .then((doc) => {
+            if (doc.exists && doc.data().displayName) {
+              currentUser.updateProfile({
+                displayName: doc.data().displayName
+              });
+            }
+          });
+      }
     }
     
     function resetGameState() {
@@ -653,7 +1349,7 @@
       gameState.timeBend.cooldown = 0;
       gameState.timeBend.active = false;
       gameState.relics.phantomPhaseUsed = false;
-      gameState.nextObstacleY = GAME_HEIGHT - 300;
+      gameState.path = { lastX: GAME_WIDTH / 2, nextY: GAME_HEIGHT - 200 };
       gameState.gameActive = true;
       scoreValue.textContent = '0';
       shardValue.textContent = '0';
@@ -679,13 +1375,24 @@
       safeModeBtn.addEventListener('click', () => startGame('safe'));
       fractureModeBtn.addEventListener('click', () => startGame('fracture'));
       shopBtn.addEventListener('click', showShop);
+      leaderboardBtn.addEventListener('click', showLeaderboard);
       retryBtn.addEventListener('click', () => startGame(gameState.mode));
       fractureRetryBtn.addEventListener('click', () => startGame('fracture'));
-      menuBtn.addEventListener('click', showMenu);
-      backToMenuBtn.addEventListener('click', showMenu);
+      menuBtn.addEventListener('click', () => showMenu());
+      backToMenuBtn.addEventListener('click', () => showMenu());
+      leaderboardBackBtn.addEventListener('click', () => showMenu());
       upgradeTimeBendBtn.addEventListener('click', purchaseTimeBend);
       upgradeMagnetBtn.addEventListener('click', purchaseMagnet);
       buyRelicBtn.addEventListener('click', purchaseRelic);
+      
+      // Leaderboard tabs
+      leaderboardTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          leaderboardTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          updateLeaderboard(tab.dataset.type);
+        });
+      });
     }
 
     function startGame(mode) {
@@ -693,19 +1400,41 @@
       resetGameState();
       menuScreen.style.display = 'none';
       shopScreen.style.display = 'none';
+      leaderboardScreen.style.display = 'none';
+      authScreen.style.display = 'none';
     }
 
     function showMenu() {
       menuScreen.style.display = 'flex';
       shopScreen.style.display = 'none';
       gameOverScreen.style.display = 'none';
+      leaderboardScreen.style.display = 'none';
+      authScreen.style.display = 'none';
       gameState.gameActive = false;
     }
 
     function showShop() {
       menuScreen.style.display = 'none';
       shopScreen.style.display = 'flex';
+      leaderboardScreen.style.display = 'none';
+      authScreen.style.display = 'none';
       updateShopUI();
+    }
+    
+    function showLeaderboard() {
+      menuScreen.style.display = 'none';
+      shopScreen.style.display = 'none';
+      leaderboardScreen.style.display = 'flex';
+      authScreen.style.display = 'none';
+      updateLeaderboard('score');
+    }
+    
+    function showAuthScreen() {
+      menuScreen.style.display = 'none';
+      shopScreen.style.display = 'none';
+      leaderboardScreen.style.display = 'none';
+      authScreen.style.display = 'flex';
+      updateAuthUI();
     }
     
     function getUpgradeCost(baseCost, level) {
@@ -713,23 +1442,19 @@
     }
 
     function updateShopUI() {
-        totalShards.textContent = gameState.totalShards;
-
-        // Time Bend
+        totalShardsEl.textContent = gameState.totalShards;
         const timeBendLevel = gameState.upgrades.timeBendLevel - 1;
         const timeBendCost = getUpgradeCost(50, timeBendLevel);
         timeBendLevelEl.textContent = gameState.upgrades.timeBendLevel;
         timeBendCostEl.textContent = `${timeBendCost} ✦`;
         upgradeTimeBendBtn.disabled = gameState.totalShards < timeBendCost;
         
-        // Shard Magnet
         const magnetLevel = gameState.upgrades.shardMagnetLevel;
         const magnetCost = getUpgradeCost(30, magnetLevel);
         magnetLevelEl.textContent = magnetLevel;
         magnetCostEl.textContent = `${magnetCost} ✦`;
         upgradeMagnetBtn.disabled = gameState.totalShards < magnetCost;
 
-        // Relic
         if (gameState.relics.phantomPhase) {
             buyRelicBtn.disabled = true;
             buyRelicBtn.textContent = "Purchased";
@@ -745,6 +1470,10 @@
             gameState.totalShards -= cost;
             gameState.upgrades.timeBendLevel++;
             updateShopUI();
+            
+            if (currentUser) {
+                saveUserData();
+            }
         }
     }
 
@@ -755,6 +1484,10 @@
             gameState.totalShards -= cost;
             gameState.upgrades.shardMagnetLevel++;
             updateShopUI();
+            
+            if (currentUser) {
+                saveUserData();
+            }
         }
     }
 
@@ -763,6 +1496,10 @@
             gameState.totalShards -= 120;
             gameState.relics.phantomPhase = true;
             updateShopUI();
+            
+            if (currentUser) {
+                saveUserData();
+            }
         }
     }
 
@@ -771,12 +1508,35 @@
         gameState.gameActive = false;
         gameState.player.isAlive = false;
         createParticleExplosion(gameState.player.x, gameState.player.y, 40, '#00f3ff');
+        
         setTimeout(() => {
             const time = Math.floor((Date.now() - gameState.startTime) / 1000);
             timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
             finalScore.textContent = gameState.score;
             shardsCollected.textContent = gameState.currentRunShards;
+            
+            // Update totals
             gameState.totalShards += gameState.currentRunShards;
+            
+            // Update high score if needed
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+            }
+            
+            // Save game data if user is logged in
+            if (currentUser) {
+                saveUserData();
+                
+                // Update leaderboard entry
+                db.collection('leaderboard').doc(currentUser.uid).set({
+                    userId: currentUser.uid,
+                    displayName: currentUser.displayName || 'Anonymous',
+                    score: gameState.highScore,
+                    shards: gameState.totalShards,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            
             gameOverScreen.style.display = 'flex';
             setTimeout(() => gameOverScreen.style.opacity = '1', 50);
         }, 800);
@@ -804,22 +1564,24 @@
     function updateGame() {
       if (!gameState.gameActive) return;
       const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
-      
+      const isFracture = gameState.mode === 'fracture';
+      const pathSpeed = isFracture ? 4 : 2;
+
       gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
       gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
+      
       gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
       if (gameState.player.trail.length > 20) gameState.player.trail.shift();
       gameState.player.trail.forEach(p => p.alpha -= 0.05);
 
-      gameState.nextObstacleY -= (2 + (gameState.mode === 'fracture' ? 2 : 0)) * timeFactor;
-      if (gameState.nextObstacleY <= 0) {
-          createObstacle();
-          if (gameState.mode === 'fracture') createFractureDebris();
-          const baseDistance = gameState.mode === 'fracture' ? 100 : 130;
-          gameState.nextObstacleY = baseDistance + Math.random() * 50;
+      gameState.path.nextY -= pathSpeed * timeFactor;
+      if (gameState.path.nextY <= 0) {
+          createObstacleLayer(-30);
+          const baseDistance = isFracture ? 80 : 120;
+          gameState.path.nextY = baseDistance + Math.random() * 40;
       }
       
-      const shardSpawnRate = gameState.mode === 'fracture' ? 0.03 : 0.015;
+      const shardSpawnRate = isFracture ? 0.03 : 0.015;
       if (Math.random() < shardSpawnRate * timeFactor) createShard();
       
       gameState.obstacles.forEach((obs, i) => {
@@ -829,7 +1591,7 @@
       });
       
       gameState.shardsCollectible.forEach((shard, i) => {
-        shard.y += (2 + (gameState.mode === 'fracture' ? 1 : 0)) * timeFactor;
+        shard.y += (isFracture ? 3 : 2) * timeFactor;
         const dx = shard.x - gameState.player.x;
         const dy = shard.y - gameState.player.y;
         const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
@@ -886,9 +1648,7 @@
             grad.addColorStop(0, 'rgba(0, 243, 255, 0.4)');
             grad.addColorStop(1, 'rgba(0, 243, 255, 0)');
             ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, size * 2.5, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, size * 2.5, 0, Math.PI * 2); ctx.fill();
         }
         ctx.beginPath();
         ctx.moveTo(0, -size * 0.8 * breath);
@@ -952,29 +1712,39 @@
       ctx.shadowBlur = 0;
     }
     
-    function createObstacle() {
+    function createObstacleLayer(baseY) {
         const isFracture = gameState.mode === 'fracture';
-        const gapSize = PLAYER_SIZE + 80;
         const speed = isFracture ? 4 : 2;
-        const positionOfGap = Math.random() * (GAME_WIDTH - gapSize);
-        const obsDefaults = { y: -30, height: 20, speed: speed, passed: false, isFracture: isFracture };
-        if (positionOfGap > 0) {
-            gameState.obstacles.push({ ...obsDefaults, x: 0, width: positionOfGap });
-        }
-        const rightSideX = positionOfGap + gapSize;
-        if (rightSideX < GAME_WIDTH) {
-            gameState.obstacles.push({ ...obsDefaults, x: rightSideX, width: GAME_WIDTH - rightSideX });
-        }
-    }
+        const obsDefaults = { y: baseY, height: 20, speed: speed, passed: true, isFracture: isFracture };
+        
+        const gapSize = PLAYER_SIZE + (isFracture ? 60 : 75);
+        const maxDrift = 120;
 
-    function createFractureDebris() {
-        const count = Math.random() > 0.5 ? 2 : 1;
-        for (let i = 0; i < count; i++) {
-            const size = 20 + Math.random() * 30;
-            gameState.obstacles.push({
-                x: Math.random() * (GAME_WIDTH - size), y: -30,
-                width: size, height: 15, speed: 5, passed: true, isFracture: true
-            });
+        let nextPathX = gameState.path.lastX + (Math.random() - 0.5) * maxDrift;
+        nextPathX = Math.max(gapSize / 2, Math.min(GAME_WIDTH - gapSize / 2, nextPathX));
+        gameState.path.lastX = nextPathX;
+
+        const gapStart = nextPathX - gapSize / 2;
+        const gapEnd = nextPathX + gapSize / 2;
+        
+        const density = isFracture ? 0.9 : 0.7;
+
+        for (let i = 0; i < (isFracture ? 12 : 8); i++) {
+            const fragX = Math.random() * GAME_WIDTH;
+            const fragWidth = 20 + Math.random() * 50;
+
+            if (fragX + fragWidth > gapStart && fragX < gapEnd) {
+                continue;
+            }
+
+            if (Math.random() < density) {
+                 gameState.obstacles.push({
+                    ...obsDefaults,
+                    x: fragX,
+                    width: fragWidth,
+                    y: baseY + (Math.random() * 40 - 20)
+                });
+            }
         }
     }
 
