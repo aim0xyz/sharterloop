@@ -11,11 +11,11 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <style>
-    * {margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;}
+    *{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;}
     body{
       font-family:'Segoe UI','Helvetica Neue',sans-serif;
       background:linear-gradient(135deg,#0c0c2d,#000);
-      color:white;height:100vh;overflow:hidden;
+      color:#fff;height:100vh;overflow:hidden;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       user-select:none;-webkit-tap-highlight-color:transparent;
     }
@@ -25,11 +25,16 @@
     .score-display,.shard-count{position:absolute;font-size:24px;font-weight:bold;text-shadow:0 0 10px #00f3ff,0 0 20px #00f3ff;pointer-events:none;}
     .score-display{top:20px;left:20px;}
     .shard-count{top:20px;right:20px;text-shadow:0 0 10px #f300ff,0 0 20px #f300ff;}
-    .time-bend-ui{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:80px;height:80px;border-radius:50%;background:rgba(0,0,0,0.5);border:2px solid #00f3ff;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:auto;touch-action:manipulation;z-index:20;}
+    .time-bend-ui{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:80px;height:80px;
+      border-radius:50%;background:rgba(0,0,0,0.5);border:2px solid #00f3ff;display:flex;flex-direction:column;
+      justify-content:center;align-items:center;pointer-events:auto;touch-action:manipulation;z-index:20;}
     .time-bend-icon{font-size:30px;color:#00f3ff;text-shadow:0 0 10px #00f3ff;}
-    .time-bend-counter{position:absolute;bottom:-25px;font-size:18px;font-weight:bold;color:#00f3ff;background:rgba(0,0,0,0.5);padding:3px 10px;border-radius:12px;border:1px solid #00f3ff;}
-    .time-bend-cooldown{position:absolute;width:100%;height:100%;border-radius:50%;border:5px solid transparent;border-top-color:#00f3ff;animation:cooldown 5s linear forwards;opacity:0.7;}
+    .time-bend-counter{position:absolute;bottom:-25px;font-size:18px;font-weight:bold;color:#00f3ff;
+      background:rgba(0,0,0,0.5);padding:3px 10px;border-radius:12px;border:1px solid #00f3ff;}
+    .time-bend-cooldown{position:absolute;width:100%;height:100%;border-radius:50%;border:5px solid transparent;
+      border-top-color:#00f3ff;animation:cooldown 5s linear forwards;opacity:0.7;}
     @keyframes cooldown{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+
     /* MENU */
     #menuScreen{
       position:absolute;top:0;left:0;width:100%;height:100%;
@@ -38,20 +43,24 @@
       z-index:100;padding:20px;padding-top:5vh;padding-bottom:5vh;
       text-align:center;overflow-y:auto;pointer-events:auto;
     }
-    #menuScreen h1{font-size:48px;margin-bottom:20px;background:linear-gradient(to right,#00f3ff,#f300ff);
+    #menuScreen h1{
+      font-size:48px;margin-bottom:20px;background:linear-gradient(to right,#00f3ff,#f300ff);
       -webkit-background-clip:text;background-clip:text;color:transparent;
-      text-shadow:0 0 20px rgba(0,243,255,0.3);letter-spacing:1px;}
+      text-shadow:0 0 20px rgba(0,243,255,0.3);letter-spacing:1px;
+    }
     #menuScreen p{font-size:18px;max-width:90%;margin-bottom:30px;color:#aaa;line-height:1.5;}
     .menu-btn{
       background:linear-gradient(to right,#0047ff,#00a2ff);border:none;border-radius:50px;
-      color:white;font-size:22px;font-weight:bold;padding:15px 40px;margin:15px 0;
+      color:#fff;font-size:22px;font-weight:bold;padding:15px 40px;margin:15px 0;
       width:80%;max-width:350px;cursor:pointer;transition:all .3s ease;
       box-shadow:0 5px 15px rgba(0,162,255,0.4);letter-spacing:1px;
       pointer-events:auto;touch-action:manipulation;
     }
     .menu-btn:active{transform:scale(.95);box-shadow:0 3px 10px rgba(0,162,255,0.6);}
-    .menu-btn.fracture{background:linear-gradient(to right,#7b00ff,#f300ff);
-      box-shadow:0 5px 15px rgba(243,0,255,0.4);}
+    .menu-btn.fracture{
+      background:linear-gradient(to right,#7b00ff,#f300ff);
+      box-shadow:0 5px 15px rgba(243,0,255,0.4);
+    }
     .menu-btn.fracture:active{box-shadow:0 3px 10px rgba(243,0,255,0.6);}
     .user-badge{
       position:absolute;top:15px;right:15px;width:40px;height:40px;
@@ -59,6 +68,7 @@
       display:flex;align-items:center;justify-content:center;font-size:20px;
       cursor:pointer;border:2px solid #00a2ff;pointer-events:auto;
     }
+
     /* GAME OVER */
     #gameOverScreen{
       position:absolute;top:0;left:0;width:100%;height:100%;
@@ -77,6 +87,7 @@
     .stat-value{font-weight:bold;color:#00f3ff;}
     .stat-value.shards{color:#f300ff;}
     .menu-btn-container{display:flex;flex-direction:column;width:100%;max-width:400px;gap:15px;}
+
     /* SHOPS & UI */
     #shopScreen,#leaderboardScreen,#authScreen,#profileScreen,#dailyCheckInScreen,#referralScreen{
       position:absolute;top:0;left:0;width:100%;height:100%;
@@ -85,8 +96,9 @@
       z-index:100;padding:30px 20px 20px;overflow-y:auto;pointer-events:auto;
     }
     #shopScreen h1,#leaderboardScreen h1,#authScreen h1,#profileScreen h1,
-    #dailyCheckInScreen h1,#referralScreen h1{font-size:36px;margin-bottom:25px;
-      color:#f300ff;text-align:center;}
+    #dailyCheckInScreen h1,#referralScreen h1{
+      font-size:36px;margin-bottom:25px;color:#f300ff;text-align:center;
+    }
     .shop-header,.leaderboard-header{
       display:flex;justify-content:space-between;width:100%;max-width:400px;
       margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333;
@@ -108,12 +120,13 @@
       color:#aaa;font-size:14px;margin-bottom:15px;}
     .buy-btn{
       background:linear-gradient(to right,#7b00ff,#f300ff);border:none;border-radius:50px;
-      color:white;font-size:18px;font-weight:bold;padding:12px 25px;width:100%;cursor:pointer;
+      color:#fff;font-size:18px;font-weight:bold;padding:12px 25px;width:100%;cursor:pointer;
       transition:all .3s ease;box-shadow:0 5px 15px rgba(243,0,255,0.4);letter-spacing:1px;
       pointer-events:auto;touch-action:manipulation;
     }
     .buy-btn:active{transform:scale(.95);box-shadow:0 3px 10px rgba(243,0,255,0.6);}
     .buy-btn:disabled{background:#555;box-shadow:none;cursor:not-allowed;}
+
     /* AUTH */
     #authScreen{background:linear-gradient(135deg,#0f0c4d,#000);z-index:200;}
     .auth-container{
@@ -122,13 +135,13 @@
     }
     .auth-input{
       width:100%;padding:12px 15px;margin-bottom:15px;border-radius:10px;
-      border:1px solid #333;background:rgba(10,10,20,0.7);color:white;font-size:16px;
+      border:1px solid #333;background:rgba(10,10,20,0.7);color:#fff;font-size:16px;
       outline:none;
     }
     .auth-input:focus{border-color:#00a2ff;box-shadow:0 0 10px rgba(0,162,255,0.4);}
     .auth-btn{
       width:100%;padding:12px 15px;margin-bottom:15px;border-radius:50px;
-      border:none;background:linear-gradient(to right,#0047ff,#00a2ff);color:white;
+      border:none;background:linear-gradient(to right,#0047ff,#00a2ff);color:#fff;
       font-size:16px;font-weight:bold;cursor:pointer;transition:all .3s ease;
     }
     .auth-btn:active{transform:scale(.95);}
@@ -140,18 +153,19 @@
     .auth-divider::after{margin-left:10px;}
     .social-btn{
       width:100%;padding:12px 15px;margin-bottom:15px;border-radius:50px;
-      border:1px solid #333;background:rgba(10,10,20,0.7);color:white;font-size:16px;
+      border:1px solid #333;background:rgba(10,10,20,0.7);color:#fff;font-size:16px;
       font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;
       transition:all .3s ease;
     }
     .social-btn img{width:24px;height:24px;margin-right:10px;}
-    .social-btn.google{background:white;color:#333;}
+    .social-btn.google{background:#fff;color:#333;}
     .auth-switch{margin-top:20px;color:#aaa;}
     .auth-switch-btn{
       color:#00a2ff;background:none;border:none;font-size:16px;cursor:pointer;
       text-decoration:underline;
     }
     .auth-error{color:#ff4d4d;margin-bottom:15px;font-size:14px;display:none;}
+
     /* PROFILE */
     .user-profile{
       display:flex;align-items:center;justify-content:space-between;
@@ -162,7 +176,7 @@
     .user-avatar{
       width:50px;height:50px;border-radius:50%;background:#333;
       display:flex;align-items:center;justify-content:center;margin-right:15px;
-      font-size:24px;color:white;
+      font-size:24px;color:#fff;
     }
     .user-name{font-size:18px;font-weight:bold;}
     .user-email{font-size:14px;color:#aaa;max-width:200px;overflow:hidden;text-overflow:ellipsis;}
@@ -181,17 +195,18 @@
     .profile-field-label{font-size:14px;color:#aaa;margin-bottom:5px;}
     .profile-input{
       width:100%;padding:12px 15px;border-radius:10px;border:1px solid #333;
-      background:rgba(10,10,20,0.7);color:white;font-size:16px;outline:none;
+      background:rgba(10,10,20,0.7);color:#fff;font-size:16px;outline:none;
     }
     .profile-input:focus{border-color:#00a2ff;box-shadow:0 0 10px rgba(0,162,255,0.4);}
     .save-profile-btn{
       background:linear-gradient(to right,#0047ff,#00a2ff);border:none;
-      border-radius:50px;color:white;font-size:16px;font-weight:bold;padding:10px 20px;
+      border-radius:50px;color:#fff;font-size:16px;font-weight:bold;padding:10px 20px;
       width:100%;cursor:pointer;transition:all .3s ease;margin-top:10px;
     }
     .profile-error,.profile-success{margin-top:10px;font-size:14px;text-align:center;display:none;}
     .profile-error{color:#ff4d4d;}
     .profile-success{color:#00ff7f;}
+
     /* LEADERBOARD */
     .leaderboard-list{width:100%;max-width:400px;}
     .leaderboard-item{display:flex;align-items:center;justify-content:space-between;
@@ -208,13 +223,11 @@
     .leaderboard-score{font-size:14px;color:#00f3ff;}
     .leaderboard-score.shards{color:#f300ff;}
     .leaderboard-tabs{display:flex;width:100%;max-width:400px;margin-bottom:20px;}
-    .leaderboard-tab{flex:1;padding:10px;text-align:center;background:rgba(20,20,40,0.7);
-      cursor:pointer;}
+    .leaderboard-tab{flex:1;padding:10px;text-align:center;background:rgba(20,20,40,0.7);cursor:pointer;}
     .leaderboard-tab:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px;}
     .leaderboard-tab:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px;}
-    .leaderboard-tab.active{
-      background:linear-gradient(to right,#0047ff,#00a2ff);font-weight:bold;
-    }
+    .leaderboard-tab.active{background:linear-gradient(to right,#0047ff,#00a2ff);font-weight:bold;}
+
     /* DAILY CHECK‑IN */
     .calendar-container{
       width:100%;max-width:400px;background:rgba(20,20,40,0.7);
@@ -247,11 +260,11 @@
     }
     .claim-btn{
       background:linear-gradient(to right,#0047ff,#00a2ff);border:none;
-      border-radius:50px;color:white;font-size:18px;font-weight:bold;
-      padding:12px 25px;width:100%;cursor:pointer;
-      transition:all .3s ease;
+      border-radius:50px;color:#fff;font-size:18px;font-weight:bold;
+      padding:12px 25px;width:100%;cursor:pointer;transition:all .3s ease;
     }
     .claim-btn:disabled{background:#555;cursor:not-allowed;}
+
     /* REFERRAL */
     .referral-container{
       width:100%;max-width:400px;background:rgba(20,20,40,0.7);
@@ -273,24 +286,22 @@
     .friend-referral-title{font-size:18px;font-weight:bold;color:#d8a0ff;margin-bottom:10px;}
     .friend-code-input{
       width:100%;padding:12px 15px;margin-bottom:15px;border-radius:10px;
-      border:1px solid #333;background:rgba(10,10,20,0.7);color:white;font-size:16px;
-      outline:none;
+      border:1px solid #333;background:rgba(10,10,20,0.7);color:#fff;font-size:16px;outline:none;
     }
     .submit-code-btn{
       background:linear-gradient(to right,#7b00ff,#f300ff);border:none;
-      border-radius:50px;color:white;font-size:16px;font-weight:bold;
-      padding:10px 20px;width:100%;cursor:pointer;
-      transition:all .3s ease;
+      border-radius:50px;color:#fff;font-size:16px;font-weight:bold;
+      padding:10px 20px;width:100%;cursor:pointer;transition:all .3s ease;
     }
     .referral-status{margin-top:15px;color:#aaa;font-size:14px;text-align:center;}
-    /* RELOADING SPINNER */
+
     .spinner{
       width:40px;height:40px;border-radius:50%;
       border:4px solid rgba(255,255,255,0.1);border-top-color:#00f3ff;
       animation:spin 1s infinite linear;margin:20px auto;
     }
     @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-    /* RESPONSIVE */
+
     @media (max-height:650px){
       .menu-btn{padding:12px 30px;font-size:18px;}
       #menuScreen h1{font-size:36px;}
@@ -347,6 +358,7 @@
         <div>Total Shards:</div>
         <div class="total-shards">✦ <span id="totalShards">0</span></div>
       </div>
+
       <div class="upgrade-card">
         <div class="upgrade-header">
           <div class="upgrade-title">Time Bend Capacity</div>
@@ -572,7 +584,7 @@
       currentRunShards: 0,
       path: { lastX: GAME_WIDTH/2, nextY: GAME_HEIGHT-200 },
       highScore: 0,
-      highScoreDisplay: '0.000',   // seconds with 3 decimals (for leaderboard)
+      highScoreDisplay: '0.000',   // seconds, 3‑dec places (for leaderboard)
       totalShardsCollected: 0,
       speedMultiplier: 1.0,
       gameStartTime: 0,
@@ -915,6 +927,9 @@
       }).catch(err => console.error('Copy failed', err));
     }
 
+    // ------------------------------------------------------------
+    // *** FIXED REFERRAL SUBMIT ***
+    // ------------------------------------------------------------
     function submitReferralCode() {
       if (!currentUser) return;
 
@@ -933,26 +948,34 @@
           if (code === myCode) {
             throw new Error('You cannot use your own referral code');
           }
-          // Find the referrer
-          return db.collection('users')
-                   .where('referral.code', '==', code)
-                   .limit(1)
-                   .get()
-                   .then(snap => {
-                     if (snap.empty) throw new Error('Invalid referral code');
-                     return snap.docs[0];
-                   });
+
+          // Try the new‑field first, then fallback to the legacy field
+          const query = db.collection('users')
+                         .where('referral.code', '==', code)
+                         .limit(1);
+          return query.get().then(snap => {
+            if (!snap.empty) return snap.docs[0];
+            // fallback to legacy top‑level field
+            return db.collection('users')
+                     .where('referralCode', '==', code)
+                     .limit(1)
+                     .get()
+                     .then(snap2 => {
+                       if (snap2.empty) throw new Error('Invalid referral code');
+                       return snap2.docs[0];
+                     });
+          });
         })
-        .then(refDoc => {
-          // Update both users in parallel
+        .then(referrerDoc => {
+          // Update both users – use merge‑set for the friend‑code to satisfy rules
           const userUpdate = db.collection('users')
                                .doc(currentUser.uid)
-                               .update({
-                                 'referral.friendCode': code,
+                               .set({
+                                 referral: { friendCode: code },
                                  totalShards: firebase.firestore.FieldValue.increment(50)
-                               });
+                               }, { merge: true });
 
-          const referrerUpdate = refDoc.ref.update({
+          const referrerUpdate = referrerDoc.ref.update({
             'referral.referred': firebase.firestore.FieldValue.increment(1),
             'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
             totalShards: firebase.firestore.FieldValue.increment(50)
@@ -984,6 +1007,9 @@
     // ----------------------------------------------------------------------
     // DAILY CHECK‑IN
     // ----------------------------------------------------------------------
+    // ------------------------------------------------------------
+    // *** FIXED DAILY CLAIM ***
+    // ------------------------------------------------------------
     function claimDailyReward() {
       if (!currentUser) return;
 
@@ -1000,28 +1026,32 @@
           const now = new Date();
 
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-          const lastStart = checkIn.lastCheckIn ?
-            new Date(checkIn.lastCheckIn.toDate().setHours(0,0,0,0)).getTime() : 0;
+          const lastStart = checkIn.lastCheckIn
+            ? new Date(checkIn.lastCheckIn.toDate().setHours(0,0,0,0)).getTime()
+            : 0;
 
           if (lastStart === todayStart) throw new Error('Reward already claimed for today.');
 
-          // compute new streak
-          const yesterdayStart = todayStart - 86400000; // 24h
+          const yesterdayStart = todayStart - 86400000; // 24 h
           const newStreak = (lastStart === yesterdayStart) ? (checkIn.streak + 1) : 1;
 
           const rewards = [20,20,20,30,30,50,100];
           const reward = rewards[Math.min(newStreak-1, rewards.length-1)];
 
-          return userRef.update({
-            'dailyCheckIn.lastCheckIn': firebase.firestore.FieldValue.serverTimestamp(),
-            'dailyCheckIn.streak': newStreak,
-            'dailyCheckIn.maxStreak': Math.max(newStreak, checkIn.maxStreak || 0),
+          // Use set‑with‑merge so nested map writes are allowed by the rules
+          return userRef.set({
+            dailyCheckIn: {
+              lastCheckIn: firebase.firestore.FieldValue.serverTimestamp(),
+              streak: newStreak,
+              maxStreak: Math.max(newStreak, checkIn.maxStreak || 0)
+            },
             totalShards: firebase.firestore.FieldValue.increment(reward)
-          }).then(() => reward);
+          }, { merge:true })
+            .then(() => reward);
         })
         .then(reward => {
           claimDailyBtn.textContent = `Claimed ${reward} ✦`;
-          claimDailyBtn.disabled = true;
+          claimDailyBtn.disabled = true;          // stay disabled until tomorrow
           updateDailyCheckInUI();
         })
         .catch(err => {
@@ -1044,8 +1074,9 @@
 
           const now = new Date();
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-          const lastStart = checkIn.lastCheckIn ?
-            new Date(checkIn.lastCheckIn.toDate().setHours(0,0,0,0)).getTime() : 0;
+          const lastStart = checkIn.lastCheckIn
+            ? new Date(checkIn.lastCheckIn.toDate().setHours(0,0,0,0)).getTime()
+            : 0;
           const claimedToday = (lastStart === todayStart);
 
           const rewards = [20,20,20,30,30,50,100];
