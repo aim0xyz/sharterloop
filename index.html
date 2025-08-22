@@ -1489,6 +1489,41 @@
         referred: 0,
         shardsEarned: 0
       }
+			
+			// Add passive shard generation system
+let passiveShardInterval = null;
+
+function startPassiveShardGeneration() {
+  if (passiveShardInterval) clearInterval(passiveShardInterval);
+  
+  passiveShardInterval = setInterval(() => {
+    if (!currentUser) return;
+    
+    // Safe path: 10 shards per minute, Fracture path: 25 per minute
+    const shardsPerMinute = gameState.mode === 'fracture' ? 25 : 10;
+    gameState.totalShards += shardsPerMinute;
+    
+    // Update UI if visible
+    if (totalShardsEl) {
+      totalShardsEl.textContent = gameState.totalShards;
+    }
+    
+    // Save to database
+    if (currentUser) {
+      db.collection('users').doc(currentUser.uid).update({
+        totalShards: firebase.firestore.FieldValue.increment(shardsPerMinute)
+      });
+    }
+  }, 60000); // Every 60 seconds = 1 minute
+}
+
+function stopPassiveShardGeneration() {
+  if (passiveShardInterval) {
+    clearInterval(passiveShardInterval);
+    passiveShardInterval = null;
+  }
+}
+			
     };
     
     // DOM Elements
@@ -1665,24 +1700,30 @@ window.addEventListener('offline', () => {
       showAuthScreen();
       
       // Listen for auth state changes
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      loadUserData();
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    // Load user data and wait for it to complete
+    loadUserData().then(() => {
       updateUserProfile();
       if (authScreen.style.display === 'flex') {
         showMenu();
       }
-      hideLoadingScreen(); // Hide when authenticated
-    } else {
-      currentUser = null;
-      hideLoadingScreen(); // Hide when showing auth screen
-      if (authScreen.style.display !== 'flex') {
-        showAuthScreen();
-      }
+      hideLoadingScreen();
+    }).catch(error => {
+      console.error('Error loading user data:', error);
+      hideLoadingScreen();
+    });
+  } else {
+    currentUser = null;
+    stopPassiveShardGeneration(); // Stop passive generation when logged out
+    hideLoadingScreen();
+    if (authScreen.style.display !== 'flex') {
+      showAuthScreen();
     }
-    updateAuthUI();
-      });
+  }
+  updateAuthUI();
+});
     }
     
 		function setupCanvasSize() {
@@ -2138,72 +2179,97 @@ if (password.length < 6) {
     
     //-- REPLACEMENT FOR: claimDailyReward() --//
 function claimDailyReward() {
-    if (!currentUser) return;
+  if (!currentUser) return;
 
-    claimDailyBtn.disabled = true;
-    claimDailyBtn.textContent = 'Claiming...';
+  claimDailyBtn.disabled = true;
+  claimDailyBtn.textContent = 'Claiming...';
 
-    const userDocRef = db.collection('users').doc(currentUser.uid);
+  const userDocRef = db.collection('users').doc(currentUser.uid);
 
-    userDocRef.get()
+  userDocRef.get()
     .then(doc => {
-        if (!doc.exists) {
-            throw new Error("User data not found. Please reload.");
-        }
+      if (!doc.exists) {
+        throw new Error("User data not found. Please reload the page.");
+      }
 
-        const userData = doc.data();
-        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
+      const userData = doc.data();
+      const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
+      
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      let lastCheckInDate = null;
+      if (checkInData.lastCheckIn) {
+        // Handle both Firestore Timestamp and regular Date objects
+        const lastCheckInTimestamp = checkInData.lastCheckIn.toDate ? 
+          checkInData.lastCheckIn.toDate() : new Date(checkInData.lastCheckIn);
+        lastCheckInDate = new Date(
+          lastCheckInTimestamp.getFullYear(), 
+          lastCheckInTimestamp.getMonth(), 
+          lastCheckInTimestamp.getDate()
+        );
+      }
+
+      // Check if already claimed today
+      if (lastCheckInDate && lastCheckInDate.getTime() === today.getTime()) {
+        throw new Error("Reward already claimed for today!");
+      }
+
+      // Calculate new streak
+      let newStreak = 1;
+      if (lastCheckInDate) {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
         
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const lastCheckInStart = checkInData.lastCheckIn ? new Date(checkInData.lastCheckIn.toDate().setHours(0, 0, 0, 0)).getTime() : 0;
-
-        if (lastCheckInStart === todayStart) {
-            throw new Error("Reward already claimed for today.");
+        if (lastCheckInDate.getTime() === yesterday.getTime()) {
+          newStreak = (checkInData.streak || 0) + 1;
         }
+      }
 
-        let newStreak = 1;
-        const yesterdayStart = new Date(todayStart);
-        yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+      // Cap streak at 7 days and get reward
+      const effectiveStreak = Math.min(newStreak, 7);
+      const rewards = [20, 20, 20, 30, 30, 50, 100];
+      const reward = rewards[effectiveStreak - 1];
 
-        if (lastCheckInStart === yesterdayStart.getTime()) {
-            newStreak = (checkInData.streak || 0) + 1;
-        }
-
-        const rewards = [20, 20, 20, 30, 30, 50, 100];
-        const rewardIndex = Math.min(newStreak - 1, 6);
-        const reward = rewards[rewardIndex];
-
-        const updatePayload = {
-            'dailyCheckIn.lastCheckIn': firebase.firestore.FieldValue.serverTimestamp(),
-            'dailyCheckIn.streak': newStreak,
-            'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
-            'totalShards': firebase.firestore.FieldValue.increment(reward)
-        };
+      const updatePayload = {
+        'dailyCheckIn.lastCheckIn': firebase.firestore.Timestamp.now(),
+        'dailyCheckIn.streak': newStreak,
+        'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
+        'totalShards': firebase.firestore.FieldValue.increment(reward),
+        'lastUpdated': firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      return userDocRef.update(updatePayload).then(() => {
+        // Update local state
+        gameState.totalShards += reward;
+        gameState.dailyCheckIn.streak = newStreak;
+        gameState.dailyCheckIn.lastCheckIn = now;
         
-        return userDocRef.update(updatePayload).then(() => {
-            // Update local state
-            gameState.totalShards += reward;
-            gameState.dailyCheckIn.streak = newStreak;
-            gameState.dailyCheckIn.lastCheckIn = new Date();
-            return reward;
-        });
-    })
-    .then((claimedReward) => {
-        claimDailyBtn.textContent = `Claimed ${claimedReward} Shards!`;
-        updateDailyCheckInUI();
-        loadUserData(); // Reload user data to sync
+        // Update UI
+        claimDailyBtn.textContent = `Claimed ${reward} Shards!`;
+        claimDailyBtn.style.background = 'linear-gradient(to right, #00ff7f, #32cd32)';
+        
+        // Refresh the UI after a delay
+        setTimeout(() => {
+          updateDailyCheckInUI();
+          if (totalShardsEl) {
+            totalShardsEl.textContent = gameState.totalShards;
+          }
+        }, 1000);
+        
+        return reward;
+      });
     })
     .catch(error => {
-        console.error('Error claiming daily reward:', error.message);
-        claimDailyBtn.textContent = 'Error! Try Again';
-        claimDailyBtn.style.background = 'linear-gradient(to right, #ff4d4d, #c60000)';
+      console.error('Error claiming daily reward:', error);
+      claimDailyBtn.textContent = error.message || 'Error! Try Again';
+      claimDailyBtn.style.background = 'linear-gradient(to right, #ff4d4d, #c60000)';
 
-        setTimeout(() => {
-            claimDailyBtn.disabled = false;
-            claimDailyBtn.textContent = 'Claim Today\'s Reward';
-            claimDailyBtn.style.background = '';
-        }, 3000);
+      setTimeout(() => {
+        claimDailyBtn.disabled = false;
+        claimDailyBtn.textContent = "Claim Today's Reward";
+        claimDailyBtn.style.background = '';
+      }, 3000);
     });
 }
     
@@ -2324,43 +2390,54 @@ function updateDailyCheckInUI() {
     }
     
     function loadUserData() {
-      if (!currentUser) return;
-      
-      db.collection('users').doc(currentUser.uid).get()
-        .then((doc) => {
-          if (doc.exists) {
-            const userData = doc.data();
-            gameState.totalShards = userData.totalShards || 0;
-            gameState.upgrades.timeBendLevel = userData.upgrades?.timeBendLevel || 1;
-            gameState.upgrades.shardMagnetLevel = userData.upgrades?.shardMagnetLevel || 0;
-            gameState.upgrades.phantomPhaseLevel = userData.upgrades?.phantomPhaseLevel || 0;
-            gameState.relics.phantomPhase = userData.upgrades?.phantomPhaseLevel > 0;
-            gameState.highScore = userData.highScore || 0;
-            gameState.dailyCheckIn = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
-            gameState.referral = userData.referral || { code: generateReferralCode(), friendCode: '', referred: 0, shardsEarned: 0 };
-            
-            updateShopUI();
-            updateUserProfile();
-            updateReferralUI();
-          } else {
-            // Create user document if it doesn't exist
-            const referralCode = generateReferralCode();
-            createNewUserDocument(currentUser.uid, {
-              displayName: currentUser.displayName || 'Anonymous',
-              email: currentUser.email,
-              username: currentUser.displayName || 'Anonymous',
-              referralCode: referralCode,
-              totalShards: 0,
-              highScore: 0
-            });
-            
-            gameState.referral.code = referralCode; // Ensure local state also has the generated code
-          }
-        })
-        .catch((error) => {
-          console.error("Error loading user data:", error);
+  if (!currentUser) return;
+  
+  return db.collection('users').doc(currentUser.uid).get()
+    .then((doc) => {
+      if (doc.exists) {
+        const userData = doc.data();
+        
+        // Ensure all data is properly loaded
+        gameState.totalShards = userData.totalShards || 0;
+        gameState.upgrades.timeBendLevel = userData.upgrades?.timeBendLevel || 1;
+        gameState.upgrades.shardMagnetLevel = userData.upgrades?.shardMagnetLevel || 0;
+        gameState.upgrades.phantomPhaseLevel = userData.upgrades?.phantomPhaseLevel || 0;
+        gameState.relics.phantomPhase = (userData.upgrades?.phantomPhaseLevel || 0) > 0;
+        gameState.highScore = userData.highScore || 0;
+        gameState.dailyCheckIn = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
+        gameState.referral = userData.referral || { code: generateReferralCode(), friendCode: '', referred: 0, shardsEarned: 0 };
+        
+        // Update all UI elements
+        updateShopUI();
+        updateUserProfile();
+        updateReferralUI();
+        
+        // Start passive shard generation
+        startPassiveShardGeneration();
+        
+        console.log('User data loaded successfully');
+        return userData;
+      } else {
+        // Create user document if it doesn't exist
+        const referralCode = generateReferralCode();
+        return createNewUserDocument(currentUser.uid, {
+          displayName: currentUser.displayName || 'Anonymous',
+          email: currentUser.email,
+          username: currentUser.displayName || 'Anonymous',
+          referralCode: referralCode,
+          totalShards: 0,
+          highScore: 0
+        }).then(() => {
+          gameState.referral.code = referralCode;
+          startPassiveShardGeneration();
         });
-    }
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading user data:", error);
+      throw error;
+    });
+}
     
     function updateUserProfile() {
       if (!currentUser) return;
@@ -2437,65 +2514,77 @@ function formatScore(milliseconds) {
 
     // [FIXED] Leaderboard now formats the time-based score
     function updateLeaderboard(type = 'score') {
-    leaderboardList.innerHTML = '<div class="spinner"></div>';
-    
-    let field, collection;
-    
-    if (type === 'referrals') {
-        collection = 'users';
-        field = 'referral.referred';
-    } else {
-        collection = 'users';
-        field = type === 'score' ? 'highScore' : 'totalShards';
-    }
-    
-    db.collection(collection)
-        .orderBy(field, 'desc')
-        .limit(10)
-        .get()
-        .then((snapshot) => {
-            leaderboardList.innerHTML = '';
-            
-            if (snapshot.empty) {
-                leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
-                return;
-            }
-            
-            snapshot.forEach((doc, index) => {
-                const data = doc.data();
-                const isCurrentUser = currentUser && doc.id === currentUser.uid;
-                const displayName = data.username || data.displayName || 'Anonymous';
-                
-                let scoreDisplay;
-                if (type === 'score') {
-                    // Convert milliseconds to seconds with 3 decimal places for display
-                    const scoreInSeconds = (data.highScore || 0) / 1000;
-                    scoreDisplay = formatScore(data.highScore || 0);
-                } else if (type === 'shards') {
-                    scoreDisplay = '✦ ' + (data.totalShards || 0);
-                } else if (type === 'referrals') {
-                    scoreDisplay = (data.referral?.referred || 0) + ' referrals';
-                }
-                
-                const itemHTML = `
-                    <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
-                        <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
-                        <div class="leaderboard-player">
-                            <div class="leaderboard-name">${displayName}</div>
-                            <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
-                                ${scoreDisplay}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                leaderboardList.innerHTML += itemHTML;
-            });
-        })
-        .catch((error) => {
-            console.error("Error getting leaderboard:", error);
-            leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
-        });
+  leaderboardList.innerHTML = '<div class="spinner"></div>';
+  
+  let field, collection;
+  
+  if (type === 'referrals') {
+    collection = 'users';
+    field = 'referral.referred';
+  } else {
+    collection = 'users';
+    field = type === 'score' ? 'highScore' : 'totalShards';
+  }
+  
+  // Force fresh data by using current timestamp
+  db.collection(collection)
+    .where('lastUpdated', '>', new Date(0)) // Get all records with any timestamp
+    .orderBy('lastUpdated', 'desc')
+    .orderBy(field, 'desc')
+    .limit(10)
+    .get({ source: 'server' }) // Force server fetch, not cache
+    .then((snapshot) => {
+      leaderboardList.innerHTML = '';
+      
+      if (snapshot.empty) {
+        leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
+        return;
+      }
+      
+      // Sort by the actual field after fetching
+      const docs = snapshot.docs.sort((a, b) => {
+        const aVal = type === 'score' ? (a.data().highScore || 0) : 
+                    type === 'shards' ? (a.data().totalShards || 0) :
+                    (a.data().referral?.referred || 0);
+        const bVal = type === 'score' ? (b.data().highScore || 0) : 
+                    type === 'shards' ? (b.data().totalShards || 0) :
+                    (b.data().referral?.referred || 0);
+        return bVal - aVal;
+      });
+      
+      docs.forEach((doc, index) => {
+        const data = doc.data();
+        const isCurrentUser = currentUser && doc.id === currentUser.uid;
+        const displayName = data.username || data.displayName || 'Anonymous';
+        
+        let scoreDisplay;
+        if (type === 'score') {
+          scoreDisplay = formatScore(data.highScore || 0);
+        } else if (type === 'shards') {
+          scoreDisplay = '✦ ' + (data.totalShards || 0);
+        } else if (type === 'referrals') {
+          scoreDisplay = (data.referral?.referred || 0) + ' referrals';
+        }
+        
+        const itemHTML = `
+          <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+            <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
+            <div class="leaderboard-player">
+              <div class="leaderboard-name">${displayName}</div>
+              <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
+                ${scoreDisplay}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        leaderboardList.innerHTML += itemHTML;
+      });
+    })
+    .catch((error) => {
+      console.error("Error getting leaderboard:", error);
+      leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard. Please try again.</p>';
+    });
 }
     
     // [FIXED] Game start time is now recorded for fair scoring
@@ -2639,36 +2728,24 @@ function startGame(mode) {
     }
     
     function showLeaderboard() {
-      if (!currentUser) {
-        showAuthScreen();
-        return;
-      }
-      
-      menuScreen.style.display = 'none';
-      shopScreen.style.display = 'none';
-      leaderboardScreen.style.display = 'flex';
-      authScreen.style.display = 'none';
-      profileScreen.style.display = 'none';
-      dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
-      updateLeaderboard('score');
-    }
-    
-    function showDailyCheckIn() {
-      if (!currentUser) {
-        showAuthScreen();
-        return;
-      }
-      
-      menuScreen.style.display = 'none';
-      shopScreen.style.display = 'none';
-      leaderboardScreen.style.display = 'none';
-      authScreen.style.display = 'none';
-      profileScreen.style.display = 'none';
-      dailyCheckInScreen.style.display = 'flex';
-      referralScreen.style.display = 'none';
-      updateDailyCheckInUI();
-    }
+  if (!currentUser) {
+    showAuthScreen();
+    return;
+  }
+  
+  menuScreen.style.display = 'none';
+  shopScreen.style.display = 'none';
+  leaderboardScreen.style.display = 'flex';
+  authScreen.style.display = 'none';
+  profileScreen.style.display = 'none';
+  dailyCheckInScreen.style.display = 'none';
+  referralScreen.style.display = 'none';
+  
+  // Force fresh data load with timestamp to avoid caching
+  setTimeout(() => {
+    updateLeaderboard('score');
+  }, 100);
+}
     
     function showReferral() {
       if (!currentUser) {
