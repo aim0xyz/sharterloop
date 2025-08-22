@@ -12,11 +12,17 @@
   
   <style>
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      touch-action: manipulation;
-    }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  /* Add these lines to prevent selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
     
     body {
       font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
@@ -32,25 +38,93 @@
       -webkit-tap-highlight-color: transparent;
     }
     
+		.fullscreen-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00f3ff;
+  color: #00f3ff;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.fullscreen-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.fullscreen-btn:active {
+  transform: scale(0.95);
+}
+
+/* Hide fullscreen button during game */
+body.game-active .fullscreen-btn {
+  opacity: 0.3;
+}
+
+body.game-active .fullscreen-btn:hover {
+  opacity: 1;
+}
+		
     #gameContainer {
-      position: relative;
-      width: 100%;
-      max-width: 500px;
-      height: 100vh;
-      max-height: 100vh;
-      overflow: hidden;
-      touch-action: none;
-    }
-    
-    #gameCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at center, #0a0a20, #000 70%);
-      z-index: 1;
-    }
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #0a0a20, #000 70%);
+}
+
+#gameCanvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  max-width: 500px;
+  max-height: 100vh;
+  background: transparent;
+  z-index: 1;
+}
+
+/* Update responsive adjustments */
+@media (min-width: 768px) {
+  #gameCanvas {
+    max-width: 400px;
+    height: min(100vh, 800px);
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-btn {
+    font-size: 18px;
+    padding: 12px 30px;
+    margin: 10px 0;
+  }
+  
+  #menuScreen h1 {
+    font-size: 36px;
+  }
+  
+  .score-display, .shard-count {
+    font-size: 18px;
+  }
+}
     
     #uiContainer {
       position: absolute;
@@ -1161,6 +1235,11 @@
     </div>
   </div>
 </div>
+
+<!-- Fullscreen Button -->
+<button id="fullscreenBtn" class="fullscreen-btn" title="Toggle Fullscreen">
+  <span id="fullscreenIcon">⛶</span>
+</button>
 	
   <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
@@ -1599,14 +1678,17 @@ function hideLoadingScreen() {
     const buyRelicBtn = document.getElementById('buyRelicBtn');
     
     function initGame() {
-			
-			// Show loading screen immediately
+  // Show loading screen immediately
   showLoadingScreen();
-			
-			// Monitor network status
-window.addEventListener('online', () => {
-  console.log('Network connection restored');
-});
+  
+  // Set up dynamic canvas sizing
+  setupCanvasSize();
+  window.addEventListener('resize', setupCanvasSize);
+  
+  // Monitor network status
+  window.addEventListener('online', () => {
+    console.log('Network connection restored');
+  });
 
 window.addEventListener('offline', () => {
   console.log('Network connection lost');
@@ -1646,6 +1728,36 @@ window.addEventListener('offline', () => {
       });
     }
     
+		function setupCanvasSize() {
+  const container = document.getElementById('gameContainer');
+  const canvas = document.getElementById('gameCanvas');
+  
+  // Calculate optimal size
+  const maxWidth = 500;
+  const maxHeight = 800;
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+  
+  let width = Math.min(screenWidth, maxWidth);
+  let height = Math.min(screenHeight, maxHeight);
+  
+  // Maintain aspect ratio
+  const aspectRatio = maxWidth / maxHeight;
+  if (width / height > aspectRatio) {
+    width = height * aspectRatio;
+  } else {
+    height = width / aspectRatio;
+  }
+  
+  // Update canvas actual size
+  canvas.width = GAME_WIDTH;
+  canvas.height = GAME_HEIGHT;
+  
+  // Update canvas display size
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+}
+		
     function setupAuthListeners() {
       // Sign In
       signInBtn.addEventListener('click', () => {
@@ -2486,6 +2598,29 @@ function formatScore(milliseconds) {
       upgradeTimeBendBtn.addEventListener('click', purchaseTimeBend);
       upgradeMagnetBtn.addEventListener('click', purchaseMagnet);
       buyRelicBtn.addEventListener('click', purchasePhantomRelic);
+			
+			// Add mouse controls for desktop
+canvas.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  isTouching = true;
+  handleMove(e.clientX);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!isTouching) return;
+  e.preventDefault();
+  handleMove(e.clientX);
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  e.preventDefault();
+  isTouching = false;
+});
+
+canvas.addEventListener('mouseleave', (e) => {
+  e.preventDefault();
+  isTouching = false;
+});
       
       // Leaderboard tabs
       leaderboardTabs.forEach(tab => {
@@ -2497,11 +2632,67 @@ function formatScore(milliseconds) {
       });
     }
 
-    function startGame(mode) {
-      if (!currentUser) {
-        showAuthScreen();
-        return;
-      }
+    // Fullscreen functionality
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const fullscreenIcon = document.getElementById('fullscreenIcon');
+
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement && 
+      !document.mozFullScreenElement && 
+      !document.webkitFullscreenElement && 
+      !document.msFullscreenElement) {
+    // Enter fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+    }
+  } else {
+    // Exit fullscreen
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
+
+// Update fullscreen button icon
+document.addEventListener('fullscreenchange', updateFullscreenButton);
+document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+
+function updateFullscreenButton() {
+  if (document.fullscreenElement || 
+      document.mozFullScreenElement || 
+      document.webkitFullscreenElement || 
+      document.msFullscreenElement) {
+    fullscreenIcon.textContent = '⛶';  // Exit fullscreen icon
+  } else {
+    fullscreenIcon.textContent = '⛶';  // Enter fullscreen icon
+  }
+}
+
+// Add class to body when game is active for styling
+function startGame(mode) {
+  if (!currentUser) {
+    showAuthScreen();
+    return;
+  }
+  
+  document.body.classList.add('game-active');
       
       gameState.mode = mode;
       resetGameState();
@@ -2515,6 +2706,7 @@ function formatScore(milliseconds) {
     }
 
     function showMenu() {
+  document.body.classList.remove('game-active');
       menuScreen.style.display = 'flex';
       shopScreen.style.display = 'none';
       gameOverScreen.style.display = 'none';
@@ -2703,6 +2895,7 @@ function formatScore(milliseconds) {
     }
 
     function endGame() {
+  document.body.classList.remove('game-active');
         if (!gameState.player.isAlive) return;
         gameState.gameActive = false;
         gameState.player.isAlive = false;
@@ -3001,6 +3194,37 @@ function createObstacleLayer(baseY) {
     }
     
     window.addEventListener('load', initGame);
+		// Prevent right-click context menu
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Prevent text selection with mouse
+document.addEventListener('selectstart', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Prevent drag
+document.addEventListener('dragstart', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Prevent keyboard shortcuts for copying
+document.addEventListener('keydown', (e) => {
+  // Prevent Ctrl+A, Ctrl+C, Ctrl+X, Ctrl+S
+  if (e.ctrlKey && (e.keyCode === 65 || e.keyCode === 67 || e.keyCode === 88 || e.keyCode === 83)) {
+    e.preventDefault();
+    return false;
+  }
+  // Prevent F12 (Developer Tools)
+  if (e.keyCode === 123) {
+    e.preventDefault();
+    return false;
+  }
+});
   </script>
 </body>
 </html>
