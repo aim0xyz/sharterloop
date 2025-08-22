@@ -2410,24 +2410,24 @@ function updateDailyCheckInUI() {
 }
     
     function saveUserData() {
-  if (!currentUser) return;
-  
-  const updates = {
-    totalShards: gameState.totalShards,
-    highScore: gameState.highScore,
-    totalShardsCollected: gameState.totalShardsCollected || gameState.totalShards,
-    upgrades: {
-      timeBendLevel: gameState.upgrades.timeBendLevel,
-      shardMagnetLevel: gameState.upgrades.shardMagnetLevel,
-      phantomPhaseLevel: gameState.upgrades.phantomPhaseLevel
-    },
-    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  
-  db.collection('users').doc(currentUser.uid).update(updates)
-    .catch((error) => {
-      console.error("Error saving user data:", error);
-    });
+    if (!currentUser) return;
+    
+    const updates = {
+        totalShards: gameState.totalShards,
+        highScore: gameState.highScore,
+        totalShardsCollected: gameState.totalShardsCollected || gameState.totalShards,
+        upgrades: {
+            timeBendLevel: gameState.upgrades.timeBendLevel,
+            shardMagnetLevel: gameState.upgrades.shardMagnetLevel,
+            phantomPhaseLevel: gameState.upgrades.phantomPhaseLevel
+        },
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    db.collection('users').doc(currentUser.uid).update(updates)
+        .catch((error) => {
+            console.error("Error saving user data:", error);
+        });
 }
     
 function formatScore(milliseconds) {
@@ -2437,66 +2437,66 @@ function formatScore(milliseconds) {
 
     // [FIXED] Leaderboard now formats the time-based score
     function updateLeaderboard(type = 'score') {
-      leaderboardList.innerHTML = '<div class="spinner"></div>';
-      
-      let field, collection;
-      
-      if (type === 'referrals') {
+    leaderboardList.innerHTML = '<div class="spinner"></div>';
+    
+    let field, collection;
+    
+    if (type === 'referrals') {
         collection = 'users';
         field = 'referral.referred';
-      } else {
+    } else {
         collection = 'users';
         field = type === 'score' ? 'highScore' : 'totalShards';
-      }
-      
-      db.collection(collection)
+    }
+    
+    db.collection(collection)
         .orderBy(field, 'desc')
         .limit(10)
         .get()
         .then((snapshot) => {
-          leaderboardList.innerHTML = '';
-          
-          if (snapshot.empty) {
-            leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
-            return;
-          }
-          
-          snapshot.forEach((doc, index) => {
-            const data = doc.data();
-            const isCurrentUser = currentUser && doc.id === currentUser.uid;
-            const displayName = data.username || data.displayName || 'Anonymous';
+            leaderboardList.innerHTML = '';
             
-            let scoreDisplay;
-            if (type === 'score') {
-              // Convert milliseconds to seconds with 3 decimal places for display
-              const scoreInSeconds = (data.highScore || 0) / 1000;
-              scoreDisplay = formatScore(data.highScore || 0);
-            } else if (type === 'shards') {
-              scoreDisplay = '✦ ' + (data.totalShards || 0);
-            } else if (type === 'referrals') {
-              scoreDisplay = (data.referral?.referred || 0) + ' referrals';
+            if (snapshot.empty) {
+                leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
+                return;
             }
             
-            const itemHTML = `
-              <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
-                <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
-                <div class="leaderboard-player">
-                  <div class="leaderboard-name">${displayName}</div>
-                  <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
-                    ${scoreDisplay}
-                  </div>
-                </div>
-              </div>
-            `;
-            
-            leaderboardList.innerHTML += itemHTML;
-          });
+            snapshot.forEach((doc, index) => {
+                const data = doc.data();
+                const isCurrentUser = currentUser && doc.id === currentUser.uid;
+                const displayName = data.username || data.displayName || 'Anonymous';
+                
+                let scoreDisplay;
+                if (type === 'score') {
+                    // Convert milliseconds to seconds with 3 decimal places for display
+                    const scoreInSeconds = (data.highScore || 0) / 1000;
+                    scoreDisplay = formatScore(data.highScore || 0);
+                } else if (type === 'shards') {
+                    scoreDisplay = '✦ ' + (data.totalShards || 0);
+                } else if (type === 'referrals') {
+                    scoreDisplay = (data.referral?.referred || 0) + ' referrals';
+                }
+                
+                const itemHTML = `
+                    <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
+                        <div class="leaderboard-player">
+                            <div class="leaderboard-name">${displayName}</div>
+                            <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
+                                ${scoreDisplay}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                leaderboardList.innerHTML += itemHTML;
+            });
         })
         .catch((error) => {
-          console.error("Error getting leaderboard:", error);
-          leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
+            console.error("Error getting leaderboard:", error);
+            leaderboardList.innerHTML = '<p style="text-align: center; color: #ff4d4d;">Error loading leaderboard</p>';
         });
-    }
+}
     
     // [FIXED] Game start time is now recorded for fair scoring
     function resetGameState() {
@@ -2863,70 +2863,69 @@ finalScore.textContent = formatScore(gameState.score);
 
     // [FIXED] Game logic updated for time-based scoring and speed
     function updateGame() {
-        if (!gameState.gameActive) return;
+    if (!gameState.gameActive) return;
 
-        const currentTime = Date.now();
-        const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
+    const currentTime = Date.now();
+    const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
 
-        // Calculate elapsed time in seconds for consistent speed scaling
-        const elapsedSecondsForSpeed = (currentTime - gameState.gameStartTime) / 1000;
-        
-        // Update speed multiplier based on time, not score (0.1% increase per second)
-        gameState.speedMultiplier = 1.0 + (elapsedSecondsForSpeed * 0.001);
+    // Calculate elapsed time in seconds for consistent speed scaling
+    const elapsedSecondsForSpeed = (currentTime - gameState.gameStartTime) / 1000;
+    
+    // Update speed multiplier based on time, not score (0.1% increase per second)
+    gameState.speedMultiplier = 1.0 + (elapsedSecondsForSpeed * 0.001);
 
-        // Update score based on elapsed milliseconds for fairness
-        //-- REPLACEMENT --//
-gameState.score = currentTime - gameState.gameStartTime;
-const scoreInSeconds = (gameState.score / 1000).toFixed(3);
-scoreValue.textContent = formatScore(gameState.score);
+    // Update score based on elapsed milliseconds for fairness
+    gameState.score = currentTime - gameState.gameStartTime;
+    const scoreInSeconds = (gameState.score / 1000).toFixed(3);
+    scoreValue.textContent = formatScore(gameState.score);
 
-        const isFracture = gameState.mode === 'fracture';
-        const basePathSpeed = isFracture ? 4 : 2;
-        const pathSpeed = basePathSpeed * gameState.speedMultiplier;
+    const isFracture = gameState.mode === 'fracture';
+    const basePathSpeed = isFracture ? 4 : 2;
+    const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
-        // Update Player
-        gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
-        gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
+    // Update Player
+    gameState.player.x += (gameState.player.targetX - gameState.player.x) * 0.15;
+    gameState.player.x = Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, gameState.player.x));
 
-        gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-        if (gameState.player.trail.length > 20) gameState.player.trail.shift();
-        gameState.player.trail.forEach(p => p.alpha -= 0.05);
+    gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
+    if (gameState.player.trail.length > 20) gameState.player.trail.shift();
+    gameState.player.trail.forEach(p => p.alpha -= 0.05);
 
-        // Update Game World
-        gameState.path.nextY -= pathSpeed * timeFactor;
-        if (gameState.path.nextY <= 0) {
-            createObstacleLayer(-30);
-            const baseDistance = isFracture ? 80 : 120;
-            gameState.path.nextY = baseDistance + Math.random() * 40;
-        }
-
-        const shardSpawnRate = isFracture ? 0.03 : 0.015;
-        if (Math.random() < shardSpawnRate * timeFactor) createShard();
-
-        // Update Obstacles
-        gameState.obstacles.forEach((obs, i) => {
-            obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor;
-            if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
-        });
-
-        // Update Shards
-        gameState.shardsCollectible.forEach((shard, i) => {
-            shard.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
-            const dx = shard.x - gameState.player.x;
-            const dy = shard.y - gameState.player.y;
-            const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
-            if (Math.sqrt(dx * dx + dy * dy) < PLAYER_SIZE / 2 + magnetRadius) {
-                gameState.currentRunShards++;
-                shardValue.textContent = gameState.currentRunShards;
-                createParticleExplosion(shard.x, shard.y, 10, '#f300ff');
-                gameState.shardsCollectible.splice(i, 1);
-            } else if (shard.y > GAME_HEIGHT + 20) {
-                gameState.shardsCollectible.splice(i, 1);
-            }
-        });
-
-        checkCollisions();
+    // Update Game World
+    gameState.path.nextY -= pathSpeed * timeFactor;
+    if (gameState.path.nextY <= 0) {
+        createObstacleLayer(-30);
+        const baseDistance = isFracture ? 80 : 120;
+        gameState.path.nextY = baseDistance + Math.random() * 40;
     }
+
+    const shardSpawnRate = isFracture ? 0.03 : 0.015;
+    if (Math.random() < shardSpawnRate * timeFactor) createShard();
+
+    // Update Obstacles
+    gameState.obstacles.forEach((obs, i) => {
+        obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor;
+        if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
+    });
+
+    // Update Shards
+    gameState.shardsCollectible.forEach((shard, i) => {
+        shard.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
+        const dx = shard.x - gameState.player.x;
+        const dy = shard.y - gameState.player.y;
+        const magnetRadius = 15 + (gameState.upgrades.shardMagnetLevel * 15);
+        if (Math.sqrt(dx * dx + dy * dy) < PLAYER_SIZE / 2 + magnetRadius) {
+            gameState.currentRunShards++;
+            shardValue.textContent = gameState.currentRunShards;
+            createParticleExplosion(shard.x, shard.y, 10, '#f300ff');
+            gameState.shardsCollectible.splice(i, 1);
+        } else if (shard.y > GAME_HEIGHT + 20) {
+            gameState.shardsCollectible.splice(i, 1);
+        }
+    });
+
+    checkCollisions();
+}
     
     function checkCollisions() {
   if (!gameState.player.isAlive) return;
