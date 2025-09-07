@@ -1698,8 +1698,8 @@ function activatePhantomRelic() {
 }
     
 function createParticleExplosion(x, y, count, color) {
-        // Further limit particle count for performance
-        const maxParticles = Math.min(count, 12);
+        // Balanced particle count for smooth performance
+        const maxParticles = Math.min(count, 15);
         for (let i = 0; i < maxParticles; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 3; // Reduced speed variation
@@ -1735,8 +1735,8 @@ function updateGame() {
     // Update score based on elapsed milliseconds for fairness
     gameState.score = currentTime - gameState.gameStartTime;
     
-    // Throttle DOM updates for better performance (update every 200ms instead of every frame)
-    if (!gameState.lastScoreUpdate || currentTime - gameState.lastScoreUpdate > 200) {
+    // Throttle DOM updates for better performance (update every 100ms for responsiveness)
+    if (!gameState.lastScoreUpdate || currentTime - gameState.lastScoreUpdate > 100) {
         scoreValue.textContent = formatScore(gameState.score);
         gameState.lastScoreUpdate = currentTime;
     }
@@ -1764,8 +1764,8 @@ function updateGame() {
     const basePathSpeed = isFracture ? 4 : 2;
     const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
-    // Update Player with improved mobile responsiveness and 2D movement
-    const lerpSpeed = gameState.mode === 'fracture' ? 0.2 : 0.15; // Faster response in fracture mode
+    // Update Player with smooth movement
+    const lerpSpeed = gameState.mode === 'fracture' ? 0.18 : 0.12; // Slightly slower for smoother movement
     
     // Horizontal movement
     gameState.player.x += (gameState.player.targetX - gameState.player.x) * lerpSpeed;
@@ -1775,20 +1775,14 @@ function updateGame() {
     gameState.player.y += (gameState.player.targetY - gameState.player.y) * lerpSpeed;
     gameState.player.y = Math.max(PLAYER_SIZE / 2, Math.min(GAME_HEIGHT - PLAYER_SIZE / 2, gameState.player.y));
 
-    // Optimize trail system - only add trail every few frames
-    if (!gameState.trailCounter || gameState.trailCounter % 3 === 0) {
-        gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-        if (gameState.player.trail.length > 15) gameState.player.trail.shift(); // Reduced trail length
-    }
-    gameState.trailCounter = (gameState.trailCounter || 0) + 1;
+    // Smooth trail system - add trail every frame but limit length
+    gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
+    if (gameState.player.trail.length > 12) gameState.player.trail.shift(); // Reduced trail length
     
-    // Update trail alpha less frequently
-    if (!gameState.trailUpdateCounter || gameState.trailUpdateCounter % 2 === 0) {
-        for (let i = 0; i < gameState.player.trail.length; i++) {
-            gameState.player.trail[i].alpha -= 0.08; // Faster fade
-        }
+    // Update trail alpha smoothly
+    for (let i = 0; i < gameState.player.trail.length; i++) {
+        gameState.player.trail[i].alpha -= 0.06; // Smooth fade
     }
-    gameState.trailUpdateCounter = (gameState.trailUpdateCounter || 0) + 1;
 
     // Update Game World
     gameState.path.nextY -= pathSpeed * timeFactor;
@@ -2089,7 +2083,7 @@ function drawGame() {
   // Draw and update particles with proper cleanup
   for (let i = gameState.particles.length - 1; i >= 0; i--) {
     const p = gameState.particles[i];
-    p.alpha -= 0.05; // Even faster fade for better performance
+    p.alpha -= 0.04; // Slightly slower fade for smoother appearance
     if (p.alpha <= 0) {
       gameState.particles.splice(i, 1);
       continue;
@@ -2271,22 +2265,15 @@ function createShard() {
   });
 }
     
-// Frame rate limiting for better performance
-let lastFrameTime = 0;
-const targetFPS = 60;
-const frameInterval = 1000 / targetFPS;
-
+// Smooth game loop without frame rate limiting
 function gameLoop(currentTime) {
-  if (currentTime - lastFrameTime >= frameInterval) {
-    // Cache frame time for use in drawing functions
-    gameState.lastFrameTime = currentTime;
-    
-    if (gameState.gameActive) {
-      updateGame();
-    }
-    drawGame();
-    lastFrameTime = currentTime;
+  // Cache frame time for use in drawing functions
+  gameState.lastFrameTime = currentTime;
+  
+  if (gameState.gameActive) {
+    updateGame();
   }
+  drawGame();
   requestAnimationFrame(gameLoop);
 }
     
