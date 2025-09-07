@@ -1681,9 +1681,6 @@ function updateGame() {
         
         // Update shard display
         shardValue.textContent = gameState.currentRunShards;
-        
-        // Show time reward notification
-        showTimeRewardNotification(totalTimeShards, timeRewardShards);
     }
 
     const basePathSpeed = isFracture ? 4 : 2;
