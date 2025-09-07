@@ -1397,6 +1397,25 @@ body {
 /* Prevent zoom on input focus */
 input, textarea, select {
   font-size: 16px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Additional zoom prevention */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Improve touch targets */

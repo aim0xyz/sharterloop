@@ -1153,7 +1153,7 @@ function formatScore(milliseconds) {
   return `${seconds.toFixed(3)}s`;
 }
 
-// [FIXED] Leaderboard now formats the time-based score
+// [FIXED] Leaderboard now formats the time-based score and handles missing data
 function updateLeaderboard(type = 'score') {
     leaderboardList.innerHTML = '<div class="spinner"></div>';
     
@@ -1166,6 +1166,7 @@ function updateLeaderboard(type = 'score') {
         field = type === 'score' ? 'highScore' : 'totalShardsCollected';
     }
     
+    // First, try to get users with the specific field
     db.collection(collection)
         .orderBy(field, 'desc')
         .limit(10)
@@ -1174,30 +1175,63 @@ function updateLeaderboard(type = 'score') {
             leaderboardList.innerHTML = '';
             
             if (snapshot.empty) {
-                leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
-                return;
+                // If no data with the specific field, try to get any users and sort manually
+                return db.collection('users').limit(50).get();
             }
             
-            snapshot.forEach((doc, index) => {
+            return snapshot;
+        })
+        .then((snapshot) => {
+            if (!snapshot) return;
+            
+            let users = [];
+            snapshot.forEach((doc) => {
                 const data = doc.data();
                 const isCurrentUser = currentUser && doc.id === currentUser.uid;
                 const displayName = data.username || data.displayName || 'Anonymous';
                 
+                let scoreValue = 0;
+                if (type === 'score') {
+                    scoreValue = data.highScore || 0;
+                } else if (type === 'shards') {
+                    scoreValue = data.totalShardsCollected || data.totalShards || 0;
+                } else if (type === 'referrals') {
+                    scoreValue = data.referral?.referred || 0;
+                }
+                
+                users.push({
+                    id: doc.id,
+                    data: data,
+                    displayName: displayName,
+                    scoreValue: scoreValue,
+                    isCurrentUser: isCurrentUser
+                });
+            });
+            
+            // Sort users by score value
+            users.sort((a, b) => b.scoreValue - a.scoreValue);
+            
+            if (users.length === 0) {
+                leaderboardList.innerHTML = '<p style="text-align: center; color: #aaa;">No data available</p>';
+                return;
+            }
+            
+            // Display top 10 users
+            users.slice(0, 10).forEach((user, index) => {
                 let scoreDisplay;
                 if (type === 'score') {
-                    const scoreInSeconds = (data.highScore || 0) / 1000;
-                    scoreDisplay = formatScore(data.highScore || 0);
+                    scoreDisplay = formatScore(user.scoreValue);
                 } else if (type === 'shards') {
-                    scoreDisplay = '✦ ' + (data.totalShardsCollected || data.totalShards || 0);
+                    scoreDisplay = '✦ ' + user.scoreValue;
                 } else if (type === 'referrals') {
-                    scoreDisplay = (data.referral?.referred || 0) + ' referrals';
+                    scoreDisplay = user.scoreValue + ' referrals';
                 }
                 
                 const itemHTML = `
-                    <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                    <div class="leaderboard-item ${user.isCurrentUser ? 'current-user' : ''}">
                         <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">${index + 1}</div>
                         <div class="leaderboard-player">
-                            <div class="leaderboard-name">${displayName}</div>
+                            <div class="leaderboard-name">${user.displayName}</div>
                             <div class="leaderboard-score ${type === 'shards' ? 'shards' : ''}">
                                 ${scoreDisplay}
                             </div>
@@ -2217,3 +2251,43 @@ document.addEventListener('keydown', (e) => {
     return false;
   }
 });
+
+// Prevent zoom with keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Prevent Ctrl + Plus/Minus/0 (zoom shortcuts)
+  if (e.ctrlKey && (e.keyCode === 187 || e.keyCode === 189 || e.keyCode === 48)) {
+    e.preventDefault();
+    return false;
+  }
+});
+
+// Prevent zoom with mouse wheel + Ctrl
+document.addEventListener('wheel', (e) => {
+  if (e.ctrlKey) {
+    e.preventDefault();
+    return false;
+  }
+}, { passive: false });
+
+// Prevent double-tap zoom
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// Prevent pinch zoom
+document.addEventListener('gesturestart', (e) => {
+  e.preventDefault();
+}, false);
+
+document.addEventListener('gesturechange', (e) => {
+  e.preventDefault();
+}, false);
+
+document.addEventListener('gestureend', (e) => {
+  e.preventDefault();
+}, false);
