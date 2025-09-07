@@ -354,17 +354,17 @@ function setupAuthListeners() {
             username = 'user' + Math.floor(Math.random() * 10000);
           }
           
-          // Generate unique referral code
-          generateUniqueReferralCode().then(referralCode => {
-            // Create user document
-            return createNewUserDocument(result.user.uid, {
-              displayName: result.user.displayName || 'Anonymous',
-              email: result.user.email,
-              username: username,
-              referralCode: referralCode,
-              totalShards: 0,
-              highScore: 0
-            });
+          // Generate referral code
+          const referralCode = generateReferralCode();
+          
+          // Create user document
+          createNewUserDocument(result.user.uid, {
+            displayName: result.user.displayName || 'Anonymous',
+            email: result.user.email,
+            username: username,
+            referralCode: referralCode,
+            totalShards: 0,
+            highScore: 0
           }).then(() => {
             hideLoadingScreen();
             authScreen.style.display = 'none';
@@ -419,21 +419,21 @@ function setupAuthListeners() {
         // Create user
         auth.createUserWithEmailAndPassword(email, password)
           .then((userCredential) => {
-            // Generate unique referral code
-            return generateUniqueReferralCode().then(referralCode => {
-              // Create user document
-              return createNewUserDocument(userCredential.user.uid, {
-                displayName: username,
-                email: email,
-                username: username,
-                referralCode: referralCode,
-                totalShards: 0,
-                highScore: 0
-              }).then(() => {
-                // Update display name
-                return userCredential.user.updateProfile({
-                  displayName: username
-                });
+            // Generate referral code
+            const referralCode = generateReferralCode();
+            
+            // Create user document
+            return createNewUserDocument(userCredential.user.uid, {
+              displayName: username,
+              email: email,
+              username: username,
+              referralCode: referralCode,
+              totalShards: 0,
+              highScore: 0
+            }).then(() => {
+              // Update display name
+              return userCredential.user.updateProfile({
+                displayName: username
               });
             });
           }).then(() => {
@@ -994,21 +994,18 @@ function loadUserData() {
           };
         } else {
           // Only generate new code if absolutely no referral code exists
-          generateUniqueReferralCode().then(newReferralCode => {
-            gameState.referral = { code: newReferralCode, friendCode: '', referred: 0, shardsEarned: 0 };
-            
-            // Update the user document with the new referral code
-            return db.collection('users').doc(currentUser.uid).update({
-              referral: gameState.referral,
-              referralCode: newReferralCode // Keep for backward compatibility
-            });
+          const fallbackCode = generateReferralCode();
+          gameState.referral = { code: fallbackCode, friendCode: '', referred: 0, shardsEarned: 0 };
+          
+          // Try to update the user document with the new referral code
+          db.collection('users').doc(currentUser.uid).update({
+            referral: gameState.referral,
+            referralCode: fallbackCode // Keep for backward compatibility
           }).then(() => {
             updateReferralUI();
           }).catch(error => {
-            console.error('Error generating unique referral code:', error);
-            // Fallback to regular generation if unique generation fails
-            const fallbackCode = generateReferralCode();
-            gameState.referral = { code: fallbackCode, friendCode: '', referred: 0, shardsEarned: 0 };
+            console.error('Error updating referral code:', error);
+            // Still update UI even if database update fails
             updateReferralUI();
           });
         }
@@ -1018,24 +1015,22 @@ function loadUserData() {
         updateReferralUI();
       } else {
         // Create user document if it doesn't exist
-        generateUniqueReferralCode().then(referralCode => {
-          return createNewUserDocument(currentUser.uid, {
-            displayName: currentUser.displayName || 'Anonymous',
-            email: currentUser.email,
-            username: currentUser.displayName || 'Anonymous',
-            referralCode: referralCode,
-            totalShards: 0,
-            highScore: 0
-          });
+        const referralCode = generateReferralCode();
+        createNewUserDocument(currentUser.uid, {
+          displayName: currentUser.displayName || 'Anonymous',
+          email: currentUser.email,
+          username: currentUser.displayName || 'Anonymous',
+          referralCode: referralCode,
+          totalShards: 0,
+          highScore: 0
         }).then(() => {
           // Update local state with the generated code
-          gameState.referral = { code: gameState.referral?.code || '', friendCode: '', referred: 0, shardsEarned: 0 };
+          gameState.referral = { code: referralCode, friendCode: '', referred: 0, shardsEarned: 0 };
           updateReferralUI();
         }).catch(error => {
           console.error('Error creating user document:', error);
           // Fallback to regular generation
-          const fallbackCode = generateReferralCode();
-          gameState.referral = { code: fallbackCode, friendCode: '', referred: 0, shardsEarned: 0 };
+          gameState.referral = { code: referralCode, friendCode: '', referred: 0, shardsEarned: 0 };
           updateReferralUI();
         });
       }
