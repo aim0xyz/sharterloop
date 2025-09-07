@@ -741,13 +741,15 @@ function submitReferralCode() {
 
         const userUpdatePromise = db.collection('users').doc(currentUser.uid).update({
             'referral.friendCode': code,
-            'totalShards': firebase.firestore.FieldValue.increment(50)
+            'totalShards': firebase.firestore.FieldValue.increment(50),
+            'totalShardsCollected': firebase.firestore.FieldValue.increment(50)
         });
 
         const referrerUpdatePromise = referrerDoc.ref.update({
             'referral.referred': firebase.firestore.FieldValue.increment(1),
             'referral.shardsEarned': firebase.firestore.FieldValue.increment(50),
-            'totalShards': firebase.firestore.FieldValue.increment(50)
+            'totalShards': firebase.firestore.FieldValue.increment(50),
+            'totalShardsCollected': firebase.firestore.FieldValue.increment(50)
         });
 
         return Promise.all([userUpdatePromise, referrerUpdatePromise]);
@@ -756,6 +758,7 @@ function submitReferralCode() {
         if (!result) return;
 
         gameState.totalShards += 50;
+        gameState.totalShardsCollected += 50;
         updateReferralStatus('Success! You received 50 shards', 'success');
         friendCodeInput.value = '';
         friendReferralSection.innerHTML = `<div class="referral-status">You have used the referral code: ${code}</div>`;
@@ -822,12 +825,14 @@ function claimDailyReward() {
             'dailyCheckIn.lastCheckIn': firebase.firestore.FieldValue.serverTimestamp(),
             'dailyCheckIn.streak': newStreak,
             'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
-            'totalShards': firebase.firestore.FieldValue.increment(reward)
+            'totalShards': firebase.firestore.FieldValue.increment(reward),
+            'totalShardsCollected': firebase.firestore.FieldValue.increment(reward)
         };
         
         return userDocRef.update(updatePayload).then(() => {
             // Update local state
             gameState.totalShards += reward;
+            gameState.totalShardsCollected += reward;
             gameState.dailyCheckIn.streak = newStreak;
             gameState.dailyCheckIn.lastCheckIn = new Date();
             return reward;
@@ -1123,7 +1128,7 @@ function updateLeaderboard(type = 'score') {
         field = 'referral.referred';
     } else {
         collection = 'users';
-        field = type === 'score' ? 'highScore' : 'totalShards';
+        field = type === 'score' ? 'highScore' : 'totalShardsCollected';
     }
     
     db.collection(collection)
@@ -1148,7 +1153,7 @@ function updateLeaderboard(type = 'score') {
                     const scoreInSeconds = (data.highScore || 0) / 1000;
                     scoreDisplay = formatScore(data.highScore || 0);
                 } else if (type === 'shards') {
-                    scoreDisplay = '✦ ' + (data.totalShards || 0);
+                    scoreDisplay = '✦ ' + (data.totalShardsCollected || data.totalShards || 0);
                 } else if (type === 'referrals') {
                     scoreDisplay = (data.referral?.referred || 0) + ' referrals';
                 }
@@ -1545,6 +1550,7 @@ finalScore.textContent = formatScore(gameState.score);
             
             // Update totals
             gameState.totalShards += gameState.currentRunShards;
+            gameState.totalShardsCollected += gameState.currentRunShards;
             
             // Update high score if needed
             if (gameState.score > gameState.highScore) {
