@@ -1266,6 +1266,8 @@ function resetGameState() {
   gameState.timeBend.cooldown = 0;
   gameState.timeBend.active = false;
   gameState.relics.phantomPhaseUsed = 0;
+  // Reset phantom phase availability
+  gameState.relics.phantomPhase = gameState.upgrades.phantomPhaseLevel > 0;
   gameState.path = { lastX: GAME_WIDTH / 2, nextY: GAME_HEIGHT - 200 };
   gameState.gameActive = true;
   
@@ -1282,7 +1284,9 @@ function resetGameState() {
   shardValue.textContent = '0';
   if (timeBonusShards) timeBonusShards.textContent = '0';
   timeBendCounter.textContent = gameState.timeBend.currentUses;
-  if (phantomRelicCounter) phantomRelicCounter.textContent = gameState.relics.phantomPhase ? '1' : '0';
+  // Set phantom relic counter based on available uses
+  const availablePhantomUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+  if (phantomRelicCounter) phantomRelicCounter.textContent = Math.max(0, availablePhantomUses);
   gameOverScreen.style.display = 'none';
   gameOverScreen.style.opacity = '0';
   
@@ -1680,20 +1684,22 @@ function activateTimeBend() {
     }
 
 function activatePhantomRelic() {
-  if (gameState.relics.phantomPhase && gameState.relics.phantomPhaseUsed < 1) {
-    gameState.relics.phantomPhaseUsed = 1;
-    gameState.relics.phantomPhase = false;
+  const availableUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+  
+  if (availableUses > 0) {
+    gameState.relics.phantomPhaseUsed++;
     
     // Haptic feedback for phantom relic activation
     triggerHapticFeedback('heavy');
     
     // Update counter display
+    const remainingUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
     if (phantomRelicCounter) {
-      phantomRelicCounter.textContent = '0';
+      phantomRelicCounter.textContent = Math.max(0, remainingUses);
     }
     
-    // Visual feedback - could add a phantom effect here
-    createParticleExplosion(gameState.player.x, gameState.player.y, 30, '#f300ff');
+    // Visual feedback - phantom effect
+    createParticleExplosion(gameState.player.x, gameState.player.y, 20, '#f300ff');
   }
 }
     
@@ -1775,13 +1781,13 @@ function updateGame() {
     gameState.player.y += (gameState.player.targetY - gameState.player.y) * lerpSpeed;
     gameState.player.y = Math.max(PLAYER_SIZE / 2, Math.min(GAME_HEIGHT - PLAYER_SIZE / 2, gameState.player.y));
 
-    // Smooth trail system - add trail every frame but limit length
+    // Spirit tail system - create a flowing trail effect
     gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-    if (gameState.player.trail.length > 12) gameState.player.trail.shift(); // Reduced trail length
+    if (gameState.player.trail.length > 20) gameState.player.trail.shift(); // Proper trail length
     
-    // Update trail alpha smoothly
+    // Update trail alpha smoothly for flowing effect
     for (let i = 0; i < gameState.player.trail.length; i++) {
-        gameState.player.trail[i].alpha -= 0.06; // Smooth fade
+        gameState.player.trail[i].alpha -= 0.04; // Slower fade for better visibility
     }
 
     // Update Game World
@@ -1927,11 +1933,18 @@ function checkCollisions() {
 
     if (pR > oL && pL < oR && pB > oT && pT < oB) {
       // Check if phantom phase relic can be used
-      if (gameState.relics.phantomPhase && gameState.relics.phantomPhaseUsed < gameState.upgrades.phantomPhaseLevel) {
+      const availablePhantomUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+      if (availablePhantomUses > 0) {
         gameState.relics.phantomPhaseUsed++;
         createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 15, '#ffffff');
         triggerHapticFeedback('heavy'); // Strong feedback for phase through
         gameState.obstacles.splice(i, 1);
+        
+        // Update counter display
+        const remainingUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+        if (phantomRelicCounter) {
+          phantomRelicCounter.textContent = Math.max(0, remainingUses);
+        }
         return;
       } else {
         triggerHapticFeedback('heavy'); // Strong feedback for collision
@@ -2000,17 +2013,27 @@ function drawPlayerCharacter(ctx, x, y, size, time) {
 }
 
 function drawPlayerTrail(ctx) {
-  // Only draw trail if it has particles and optimize drawing
+  // Draw spirit tail with flowing effect
   if (gameState.player.trail.length === 0) return;
   
   for (let i = 0; i < gameState.player.trail.length; i++) {
     const p = gameState.player.trail[i];
     if (p.alpha <= 0) continue; // Skip invisible particles
     
+    // Create flowing tail effect with gradient
+    const progress = i / gameState.player.trail.length;
+    const size = (1 - progress) * 8 + 2; // Larger at the end, smaller at the tip
+    const alpha = p.alpha * (1 - progress) * 0.8; // Fade from full to transparent
+    
     ctx.beginPath();
-    const alpha = p.alpha * (i / gameState.player.trail.length) * 0.5;
     ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
-    ctx.arc(p.x, p.y + 10, i / 4, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add inner glow effect
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+    ctx.arc(p.x, p.y, size * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
