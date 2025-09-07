@@ -1650,6 +1650,7 @@ function updateGame() {
 
     const currentTime = Date.now();
     const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
+    const isFracture = gameState.mode === 'fracture';
 
     // Calculate elapsed time in seconds for consistent speed scaling
     const elapsedSecondsForSpeed = (currentTime - gameState.gameStartTime) / 1000;
@@ -1685,7 +1686,6 @@ function updateGame() {
         showTimeRewardNotification(totalTimeShards, timeRewardShards);
     }
 
-    const isFracture = gameState.mode === 'fracture';
     const basePathSpeed = isFracture ? 4 : 2;
     const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
