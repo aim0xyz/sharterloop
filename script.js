@@ -56,6 +56,8 @@
       relics: { phantomPhase: false, phantomPhaseUsed: 0 },
       gameActive: false,
       currentRunShards: 0,
+      timeBonusShards: 0,
+      timeRewardsGiven: 0,
       path: { lastX: GAME_WIDTH / 2, nextY: GAME_HEIGHT - 200 },
       highScore: 0,
       totalShardsCollected: 0,
@@ -130,6 +132,7 @@ function hideLoadingScreen() {
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScore = document.getElementById('finalScore');
     const shardsCollected = document.getElementById('shardsCollected');
+    const timeBonusShards = document.getElementById('timeBonusShards');
     const timeSurvived = document.getElementById('timeSurvived');
     const totalShardsEl = document.getElementById('totalShards');
     
@@ -1213,6 +1216,8 @@ function updateLeaderboard(type = 'score') {
 function resetGameState() {
   gameState.score = 0;
   gameState.currentRunShards = 0;
+  gameState.timeBonusShards = 0;
+  gameState.timeRewardsGiven = 0;
   gameState.gameStartTime = Date.now();
   gameState.speedMultiplier = 1.0;
   gameState.player = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, targetY: GAME_HEIGHT - 100, size: PLAYER_SIZE, isAlive: true, trail: [] };
@@ -1239,6 +1244,7 @@ function resetGameState() {
   
   scoreValue.textContent = '0';
   shardValue.textContent = '0';
+  if (timeBonusShards) timeBonusShards.textContent = '0';
   timeBendCounter.textContent = gameState.timeBend.currentUses;
   gameOverScreen.style.display = 'none';
   gameOverScreen.style.opacity = '0';
@@ -1576,7 +1582,15 @@ function endGame() {
             //-- REPLACEMENT --//
 const finalScoreInSeconds = (gameState.score / 1000).toFixed(3);
 finalScore.textContent = formatScore(gameState.score);
-            shardsCollected.textContent = gameState.currentRunShards;
+            
+            // Calculate collected shards (excluding time bonus)
+            const collectedShards = gameState.currentRunShards - gameState.timeBonusShards;
+            shardsCollected.textContent = collectedShards;
+            
+            // Display time bonus shards separately
+            if (timeBonusShards) {
+                timeBonusShards.textContent = gameState.timeBonusShards;
+            }
             
             // Update totals
             gameState.totalShards += gameState.currentRunShards;
@@ -1648,6 +1662,29 @@ function updateGame() {
     const scoreInSeconds = (gameState.score / 1000).toFixed(3);
     scoreValue.textContent = formatScore(gameState.score);
 
+    // Time-based shard rewards every 60 seconds
+    const elapsedSeconds = (currentTime - gameState.gameStartTime) / 1000;
+    const timeRewardInterval = 60; // 60 seconds
+    const timeRewardShards = isFracture ? 25 : 15; // 25 for fracture, 15 for secure
+    
+    // Check if we should award time-based shards
+    const timeRewardsEarned = Math.floor(elapsedSeconds / timeRewardInterval);
+    if (timeRewardsEarned > gameState.timeRewardsGiven) {
+        const newRewards = timeRewardsEarned - gameState.timeRewardsGiven;
+        const totalTimeShards = newRewards * timeRewardShards;
+        
+        // Track time bonus shards separately
+        gameState.timeBonusShards += totalTimeShards;
+        gameState.currentRunShards += totalTimeShards;
+        gameState.timeRewardsGiven = timeRewardsEarned;
+        
+        // Update shard display
+        shardValue.textContent = gameState.currentRunShards;
+        
+        // Show time reward notification
+        showTimeRewardNotification(totalTimeShards, timeRewardShards);
+    }
+
     const isFracture = gameState.mode === 'fracture';
     const basePathSpeed = isFracture ? 4 : 2;
     const pathSpeed = basePathSpeed * gameState.speedMultiplier;
@@ -1717,6 +1754,61 @@ function updateGame() {
     });
 
     checkCollisions();
+}
+
+// Show notification when player earns time-based shards
+function showTimeRewardNotification(totalShards, shardsPerInterval) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #00f3ff, #f300ff);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0, 243, 255, 0.5);
+        animation: slideInDown 0.5s ease-out;
+    `;
+    
+    const intervals = totalShards / shardsPerInterval;
+    const timeText = intervals === 1 ? '1 minute' : `${intervals} minutes`;
+    notification.textContent = `⏰ +${totalShards} Shards for ${timeText} survival!`;
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutUp 0.5s ease-in';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 500);
+    }, 3000);
+    
+    // Add CSS animations if not already present
+    if (!document.getElementById('timeRewardAnimations')) {
+        const style = document.createElement('style');
+        style.id = 'timeRewardAnimations';
+        style.textContent = `
+            @keyframes slideInDown {
+                from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+            @keyframes slideOutUp {
+                from { transform: translateX(-50%) translateY(0); opacity: 1; }
+                to { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
     
 function checkCollisions() {
