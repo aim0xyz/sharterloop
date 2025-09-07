@@ -64,6 +64,7 @@
       dailyCheckIn: {
         lastCheckIn: null,
         streak: 0,
+        week: 1,
         maxStreak: 0
       },
       referral: {
@@ -509,6 +510,7 @@ function createNewUserDocument(uid, userData) {
     dailyCheckIn: {
       lastCheckIn: null,
       streak: 0,
+      week: 1,
       maxStreak: 0
     },
     referral: {
@@ -818,12 +820,18 @@ function claimDailyReward() {
         }
 
         const rewards = [30, 25, 25, 35, 40, 60, 80];
-        const rewardIndex = Math.min(newStreak - 1, 6);
+        // Calculate reward based on day in current week (1-7)
+        const dayInWeek = ((newStreak - 1) % 7) + 1;
+        const rewardIndex = dayInWeek - 1; // 0-6 index
         const reward = rewards[rewardIndex];
+        
+        // Calculate current week number
+        const currentWeek = Math.floor((newStreak - 1) / 7) + 1;
 
         const updatePayload = {
             'dailyCheckIn.lastCheckIn': firebase.firestore.FieldValue.serverTimestamp(),
             'dailyCheckIn.streak': newStreak,
+            'dailyCheckIn.week': currentWeek,
             'dailyCheckIn.maxStreak': Math.max(newStreak, checkInData.maxStreak || 0),
             'totalShards': firebase.firestore.FieldValue.increment(reward),
             'totalShardsCollected': firebase.firestore.FieldValue.increment(reward)
@@ -834,6 +842,7 @@ function claimDailyReward() {
             gameState.totalShards += reward;
             gameState.totalShardsCollected += reward;
             gameState.dailyCheckIn.streak = newStreak;
+            gameState.dailyCheckIn.week = currentWeek;
             gameState.dailyCheckIn.lastCheckIn = new Date();
             return reward;
         });
@@ -868,10 +877,22 @@ function updateDailyCheckInUI() {
         }
 
         const userData = doc.data();
-        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0 };
+        const checkInData = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, week: 1 };
         const userStreak = checkInData.streak || 0;
+        const currentWeek = checkInData.week || 1;
 
-        streakCount.textContent = `${userStreak} days`;
+        // Calculate current day in the week (1-7)
+        const currentDayInWeek = ((userStreak - 1) % 7) + 1;
+        
+        // Update streak display to show week and day
+        if (userStreak === 0) {
+            streakCount.textContent = "Start your streak!";
+        } else if (userStreak <= 7) {
+            streakCount.textContent = `Day ${userStreak}`;
+        } else {
+            const weekNumber = Math.floor((userStreak - 1) / 7) + 1;
+            streakCount.textContent = `Week ${weekNumber} - Day ${currentDayInWeek}`;
+        }
 
         const now = new Date();
         const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -886,16 +907,25 @@ function updateDailyCheckInUI() {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'calendar-day';
 
-            if (i <= userStreak) {
+            // Calculate if this day is completed in the current week
+            const dayInCurrentWeek = ((userStreak - 1) % 7) + 1;
+            const isCompleted = i <= dayInCurrentWeek && userStreak > 0;
+            const isCurrent = i === dayInCurrentWeek + 1 && !hasClaimedToday && userStreak > 0;
+
+            if (isCompleted) {
                 dayDiv.classList.add('completed');
                 dayDiv.innerHTML += '<div class="check-icon">✓</div>';
             } 
-            else if (i === userStreak + 1 && !hasClaimedToday) {
+            else if (isCurrent) {
                 dayDiv.classList.add('current');
             }
 
+            // Show week number for days beyond week 1
+            const weekNumber = Math.floor((userStreak - 1) / 7) + 1;
+            const dayLabel = weekNumber > 1 ? `W${weekNumber}D${i}` : `Day ${i}`;
+
             dayDiv.innerHTML += `
-              <div class="day-number">Day ${i}</div>
+              <div class="day-number">${dayLabel}</div>
               <div class="day-reward">${rewards[i - 1]} ✦</div>
             `;
             calendarDays.appendChild(dayDiv);
