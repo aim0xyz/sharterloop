@@ -544,34 +544,42 @@ async function generateUniqueReferralCode() {
   let attempts = 0;
   const maxAttempts = 10;
   
-  while (attempts < maxAttempts) {
-    const code = generateReferralCode();
-    
-    // Check if this code already exists in the database
-    const existingUser = await db.collection('users')
-      .where('referralCode', '==', code)
-      .limit(1)
-      .get();
-    
-    if (existingUser.empty) {
-      // Also check the new referral.code field
-      const existingUserNew = await db.collection('users')
-        .where('referral.code', '==', code)
+  try {
+    while (attempts < maxAttempts) {
+      const code = generateReferralCode();
+      
+      // Check if this code already exists in the database
+      const existingUser = await db.collection('users')
+        .where('referralCode', '==', code)
         .limit(1)
         .get();
       
-      if (existingUserNew.empty) {
-        return code; // Code is unique
+      if (existingUser.empty) {
+        // Also check the new referral.code field
+        const existingUserNew = await db.collection('users')
+          .where('referral.code', '==', code)
+          .limit(1)
+          .get();
+        
+        if (existingUserNew.empty) {
+          return code; // Code is unique
+        }
       }
+      
+      attempts++;
     }
     
-    attempts++;
+    // If we can't find a unique code after max attempts, add timestamp to make it unique
+    const baseCode = generateReferralCode();
+    const timestamp = Date.now().toString(36).slice(-4);
+    return baseCode.slice(0, 4) + timestamp;
+  } catch (error) {
+    console.error('Error checking referral code uniqueness:', error);
+    // Fallback to timestamp-based unique code if database check fails
+    const baseCode = generateReferralCode();
+    const timestamp = Date.now().toString(36).slice(-4);
+    return baseCode.slice(0, 4) + timestamp;
   }
-  
-  // If we can't find a unique code after max attempts, add timestamp to make it unique
-  const baseCode = generateReferralCode();
-  const timestamp = Date.now().toString(36).slice(-4);
-  return baseCode.slice(0, 4) + timestamp;
 }
     
 function updateUsername() {
