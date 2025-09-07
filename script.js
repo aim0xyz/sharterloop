@@ -2013,44 +2013,24 @@ function drawPlayerCharacter(ctx, x, y, size, time) {
 }
 
 function drawPlayerTrail(ctx) {
-  // Draw spirit tail with flowing effect
+  // Draw simple glowing shadow effect for performance
   if (gameState.player.trail.length === 0) return;
   
   for (let i = 0; i < gameState.player.trail.length; i++) {
     const p = gameState.player.trail[i];
     if (p.alpha <= 0) continue; // Skip invisible particles
     
-    // Create flowing tail effect with proper tapering from thick to thin
-    const progress = i / gameState.player.trail.length;
-    // More dramatic tapering - start thick at spirit, end very thin
-    const size = (1 - progress) * (1 - progress) * 8 + 0.5; // Quadratic tapering: starts at 8.5px, ends at 0.5px
-    const alpha = p.alpha * (1 - progress) * 0.6; // More subtle alpha fade
+    // Simple shadow effect - just a glowing trail
+    const size = 4; // Fixed size for performance
+    const alpha = p.alpha * 0.4; // Subtle glow
     
     // Position tail at the bottom of the spirit (offset downward)
     const tailY = p.y + 15; // Offset to bottom of spirit
     
-    // Outer glow effect (larger, more subtle)
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(0, 243, 255, ${alpha * 0.3})`;
-    ctx.arc(p.x, tailY, size * 1.8, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Main tail body
+    // Single glowing circle for performance
     ctx.beginPath();
     ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
     ctx.arc(p.x, tailY, size, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Inner bright core
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
-    ctx.arc(p.x, tailY, size * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Subtle outer halo
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(200, 250, 255, ${alpha * 0.2})`;
-    ctx.arc(p.x, tailY, size * 2.2, 0, Math.PI * 2);
     ctx.fill();
   }
 }
