@@ -1698,10 +1698,22 @@ function activatePhantomRelic() {
 }
     
 function createParticleExplosion(x, y, count, color) {
-        for (let i = 0; i < count; i++) {
+        // Limit particle count for performance
+        const maxParticles = Math.min(count, 20);
+        for (let i = 0; i < maxParticles; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 4;
-            gameState.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, size: 1 + Math.random() * 3, color: color });
+            gameState.particles.push({ 
+                x, y, 
+                vx: Math.cos(angle) * speed, 
+                vy: Math.sin(angle) * speed, 
+                alpha: 1, 
+                size: 1 + Math.random() * 2, 
+                color: color,
+                colorR: parseInt(color.slice(1, 3), 16),
+                colorG: parseInt(color.slice(3, 5), 16),
+                colorB: parseInt(color.slice(5, 7), 16)
+            });
         }
     }
 
@@ -1721,8 +1733,12 @@ function updateGame() {
 
     // Update score based on elapsed milliseconds for fairness
     gameState.score = currentTime - gameState.gameStartTime;
-    const scoreInSeconds = (gameState.score / 1000).toFixed(3);
-    scoreValue.textContent = formatScore(gameState.score);
+    
+    // Throttle DOM updates for better performance (update every 100ms instead of every frame)
+    if (!gameState.lastScoreUpdate || currentTime - gameState.lastScoreUpdate > 100) {
+        scoreValue.textContent = formatScore(gameState.score);
+        gameState.lastScoreUpdate = currentTime;
+    }
 
     // Time-based shard rewards every 60 seconds
     const elapsedSeconds = (currentTime - gameState.gameStartTime) / 1000;
@@ -1792,8 +1808,8 @@ function updateGame() {
             gameState.currentRunShards++;
             shardValue.textContent = gameState.currentRunShards;
             
-            // Enhanced particle effect for mobile
-            createParticleExplosion(shard.x, shard.y, 15, '#f300ff');
+            // Reduced particle effect for better performance
+            createParticleExplosion(shard.x, shard.y, 8, '#f300ff');
             
             // Haptic feedback for shard collection
             triggerHapticFeedback('light');
@@ -1801,7 +1817,7 @@ function updateGame() {
             // Add screen shake effect for better feedback
             if (gameState.currentRunShards % 5 === 0) {
                 // Every 5th shard gives extra feedback
-                createParticleExplosion(shard.x, shard.y, 25, '#ffffff');
+                createParticleExplosion(shard.x, shard.y, 12, '#ffffff');
                 triggerHapticFeedback('success');
             }
             
@@ -1872,6 +1888,7 @@ function showTimeRewardNotification(totalShards, shardsPerInterval) {
 function checkCollisions() {
   if (!gameState.player.isAlive) return;
   
+  // Cache player bounds for performance
   const hitboxWidth = PLAYER_SIZE * 0.5;
   const hitboxHeight = PLAYER_SIZE * 0.9;
   const pL = gameState.player.x - hitboxWidth / 2;
@@ -1879,8 +1896,15 @@ function checkCollisions() {
   const pT = gameState.player.y - hitboxHeight / 2;
   const pB = gameState.player.y + hitboxHeight / 2;
 
+  // Only check obstacles that are near the player (performance optimization)
   for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
     const obs = gameState.obstacles[i];
+    
+    // Skip obstacles that are too far away
+    if (obs.y > gameState.player.y + 100 || obs.y < gameState.player.y - 100) {
+      continue;
+    }
+    
     const oL = obs.x;
     const oR = obs.x + obs.width;
     const oT = obs.y;
@@ -1890,7 +1914,7 @@ function checkCollisions() {
       // Check if phantom phase relic can be used
       if (gameState.relics.phantomPhase && gameState.relics.phantomPhaseUsed < gameState.upgrades.phantomPhaseLevel) {
         gameState.relics.phantomPhaseUsed++;
-        createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 30, '#ffffff');
+        createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 15, '#ffffff');
         triggerHapticFeedback('heavy'); // Strong feedback for phase through
         gameState.obstacles.splice(i, 1);
         return;
@@ -1949,13 +1973,13 @@ function drawPlayerCharacter(ctx, x, y, size, time) {
   bodyGrad.addColorStop(1, '#f300ff');
   ctx.fillStyle = bodyGrad;
   ctx.shadowColor = '#00f3ff';
-  ctx.shadowBlur = 25;
+  ctx.shadowBlur = 12; // Reduced shadow blur for performance
   ctx.fill();
   ctx.beginPath();
   ctx.arc(0, -size * 0.3, size * 0.4, 0, Math.PI * 2);
   ctx.fillStyle = 'white';
   ctx.shadowColor = 'white';
-  ctx.shadowBlur = 15;
+  ctx.shadowBlur = 8; // Reduced shadow blur for performance
   ctx.fill();
   ctx.restore();
 }
@@ -2011,17 +2035,20 @@ function drawGame() {
     drawPlayerTrail(ctx);
     drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, Date.now() / 1000);
   }
+  // Draw obstacles with reduced shadow effects for better performance
   gameState.obstacles.forEach(obs => {
     const color = obs.isFracture ? '#00a2ff' : '#ff007a';
     ctx.fillStyle = color;
     ctx.shadowColor = color;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 8; // Reduced shadow blur
     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
   });
+  
+  // Draw shards with reduced shadow effects
   gameState.shardsCollectible.forEach(shard => {
     ctx.fillStyle = '#f300ff';
     ctx.shadowColor = '#f300ff';
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 8; // Reduced shadow blur
     ctx.beginPath(); 
     ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2); 
     ctx.fill();
@@ -2030,22 +2057,25 @@ function drawGame() {
   // Draw and update particles with proper cleanup
   for (let i = gameState.particles.length - 1; i >= 0; i--) {
     const p = gameState.particles[i];
-    p.alpha -= 0.02;
+    p.alpha -= 0.03; // Faster fade for better performance
     if (p.alpha <= 0) {
       gameState.particles.splice(i, 1);
       continue;
     }
     p.x += p.vx;
     p.y += p.vy;
-    ctx.fillStyle = `${p.color}${Math.floor(p.alpha * 255).toString(16).padStart(2, '0')}`;
+    
+    // Use rgba for better performance than string concatenation
+    const alpha = Math.floor(p.alpha * 255);
+    ctx.fillStyle = `rgba(${p.colorR}, ${p.colorG}, ${p.colorB}, ${p.alpha})`;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // Limit particle array size to prevent memory issues
-  if (gameState.particles.length > 200) {
-    gameState.particles = gameState.particles.slice(-150);
+  if (gameState.particles.length > 100) {
+    gameState.particles = gameState.particles.slice(-80);
   }
 
   ctx.shadowBlur = 0;
@@ -2210,11 +2240,19 @@ function createShard() {
   });
 }
     
-function gameLoop() {
-  if (gameState.gameActive) {
-    updateGame();
+// Frame rate limiting for better performance
+let lastFrameTime = 0;
+const targetFPS = 60;
+const frameInterval = 1000 / targetFPS;
+
+function gameLoop(currentTime) {
+  if (currentTime - lastFrameTime >= frameInterval) {
+    if (gameState.gameActive) {
+      updateGame();
+    }
+    drawGame();
+    lastFrameTime = currentTime;
   }
-  drawGame();
   requestAnimationFrame(gameLoop);
 }
     
