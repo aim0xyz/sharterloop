@@ -814,7 +814,7 @@ function claimDailyReward() {
             newStreak = (checkInData.streak || 0) + 1;
         }
 
-        const rewards = [20, 20, 20, 30, 30, 50, 100];
+        const rewards = [30, 25, 25, 35, 40, 60, 80];
         const rewardIndex = Math.min(newStreak - 1, 6);
         const reward = rewards[rewardIndex];
 
@@ -875,7 +875,7 @@ function updateDailyCheckInUI() {
         const hasClaimedToday = lastCheckInDay === todayDate;
 
         calendarDays.innerHTML = '';
-        const rewards = [20, 20, 20, 30, 30, 50, 100]; 
+        const rewards = [30, 25, 25, 35, 40, 60, 80]; 
 
         for (let i = 1; i <= 7; i++) {
             const dayDiv = document.createElement('div');
