@@ -129,6 +129,8 @@ function hideLoadingScreen() {
     const timeBendCounter = document.getElementById('timeBendCounter');
     const timeBendCooldown = document.getElementById('timeBendCooldown');
     const timeBendEffect = document.getElementById('timeBendEffect');
+    const phantomRelicBtn = document.getElementById('phantomRelicBtn');
+    const phantomRelicCounter = document.getElementById('phantomRelicCounter');
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScore = document.getElementById('finalScore');
     const shardsCollected = document.getElementById('shardsCollected');
@@ -1246,6 +1248,7 @@ function resetGameState() {
   shardValue.textContent = '0';
   if (timeBonusShards) timeBonusShards.textContent = '0';
   timeBendCounter.textContent = gameState.timeBend.currentUses;
+  if (phantomRelicCounter) phantomRelicCounter.textContent = gameState.relics.phantomPhase ? '1' : '0';
   gameOverScreen.style.display = 'none';
   gameOverScreen.style.opacity = '0';
   
@@ -1310,6 +1313,12 @@ function setupEventListeners() {
   timeBendBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
     activateTimeBend();
+  }, { passive: false });
+  
+  phantomRelicBtn.addEventListener('click', activatePhantomRelic);
+  phantomRelicBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    activatePhantomRelic();
   }, { passive: false });
   
   safeModeBtn.addEventListener('click', () => startGame('safe'));
@@ -1635,6 +1644,24 @@ function activateTimeBend() {
         setTimeout(() => { timeBendCooldown.style.animation = ''; }, gameState.timeBend.maxCooldown);
       }
     }
+
+function activatePhantomRelic() {
+  if (gameState.relics.phantomPhase && gameState.relics.phantomPhaseUsed < 1) {
+    gameState.relics.phantomPhaseUsed = 1;
+    gameState.relics.phantomPhase = false;
+    
+    // Haptic feedback for phantom relic activation
+    triggerHapticFeedback('heavy');
+    
+    // Update counter display
+    if (phantomRelicCounter) {
+      phantomRelicCounter.textContent = '0';
+    }
+    
+    // Visual feedback - could add a phantom effect here
+    createParticleExplosion(gameState.player.x, gameState.player.y, 30, '#f300ff');
+  }
+}
     
 function createParticleExplosion(x, y, count, color) {
         for (let i = 0; i < count; i++) {

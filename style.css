@@ -307,6 +307,50 @@ body {
       border-radius: 12px;
       border: 1px solid #00f3ff;
     }
+
+.phantom-relic-ui {
+  position: absolute;
+  bottom: env(safe-area-inset-bottom, 30px);
+  bottom: max(env(safe-area-inset-bottom, 0px), 30px);
+  right: 20px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 3px solid #f300ff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 0 20px rgba(243, 0, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.phantom-relic-ui:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 30px rgba(243, 0, 255, 0.8);
+}
+
+.phantom-relic-icon {
+  font-size: 30px;
+  color: #f300ff;
+  text-shadow: 0 0 10px #f300ff;
+}
+
+.phantom-relic-counter {
+  position: absolute;
+  bottom: -25px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #f300ff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid #f300ff;
+}
     
     .time-bend-cooldown {
       position: absolute;
@@ -419,6 +463,8 @@ body {
   padding-top: max(env(safe-area-inset-top, 0px), 5vh);
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 5vh);
   text-align: center;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
   overflow-y: auto;
   pointer-events: auto;
   -webkit-overflow-scrolling: touch;
@@ -497,6 +543,8 @@ body {
       text-align: center;
       opacity: 0;
       transition: opacity 0.5s ease;
+      touch-action: manipulation;
+      -webkit-overflow-scrolling: touch;
       box-sizing: border-box;
     }
     
