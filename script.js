@@ -1698,17 +1698,17 @@ function activatePhantomRelic() {
 }
     
 function createParticleExplosion(x, y, count, color) {
-        // Limit particle count for performance
-        const maxParticles = Math.min(count, 20);
+        // Further limit particle count for performance
+        const maxParticles = Math.min(count, 12);
         for (let i = 0; i < maxParticles; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 4;
+            const speed = 2 + Math.random() * 3; // Reduced speed variation
             gameState.particles.push({ 
                 x, y, 
                 vx: Math.cos(angle) * speed, 
                 vy: Math.sin(angle) * speed, 
                 alpha: 1, 
-                size: 1 + Math.random() * 2, 
+                size: 1 + Math.random() * 1.5, // Reduced size variation
                 color: color,
                 colorR: parseInt(color.slice(1, 3), 16),
                 colorG: parseInt(color.slice(3, 5), 16),
@@ -1721,6 +1721,7 @@ function createParticleExplosion(x, y, count, color) {
 function updateGame() {
     if (!gameState.gameActive) return;
 
+    // Cache current time to avoid multiple Date.now() calls
     const currentTime = Date.now();
     const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
     const isFracture = gameState.mode === 'fracture';
@@ -1734,8 +1735,8 @@ function updateGame() {
     // Update score based on elapsed milliseconds for fairness
     gameState.score = currentTime - gameState.gameStartTime;
     
-    // Throttle DOM updates for better performance (update every 100ms instead of every frame)
-    if (!gameState.lastScoreUpdate || currentTime - gameState.lastScoreUpdate > 100) {
+    // Throttle DOM updates for better performance (update every 200ms instead of every frame)
+    if (!gameState.lastScoreUpdate || currentTime - gameState.lastScoreUpdate > 200) {
         scoreValue.textContent = formatScore(gameState.score);
         gameState.lastScoreUpdate = currentTime;
     }
@@ -1774,9 +1775,20 @@ function updateGame() {
     gameState.player.y += (gameState.player.targetY - gameState.player.y) * lerpSpeed;
     gameState.player.y = Math.max(PLAYER_SIZE / 2, Math.min(GAME_HEIGHT - PLAYER_SIZE / 2, gameState.player.y));
 
-    gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
-    if (gameState.player.trail.length > 20) gameState.player.trail.shift();
-    gameState.player.trail.forEach(p => p.alpha -= 0.05);
+    // Optimize trail system - only add trail every few frames
+    if (!gameState.trailCounter || gameState.trailCounter % 3 === 0) {
+        gameState.player.trail.push({ x: gameState.player.x, y: gameState.player.y, alpha: 1 });
+        if (gameState.player.trail.length > 15) gameState.player.trail.shift(); // Reduced trail length
+    }
+    gameState.trailCounter = (gameState.trailCounter || 0) + 1;
+    
+    // Update trail alpha less frequently
+    if (!gameState.trailUpdateCounter || gameState.trailUpdateCounter % 2 === 0) {
+        for (let i = 0; i < gameState.player.trail.length; i++) {
+            gameState.player.trail[i].alpha -= 0.08; // Faster fade
+        }
+    }
+    gameState.trailUpdateCounter = (gameState.trailUpdateCounter || 0) + 1;
 
     // Update Game World
     gameState.path.nextY -= pathSpeed * timeFactor;
@@ -1789,27 +1801,36 @@ function updateGame() {
     const shardSpawnRate = isFracture ? 0.03 : 0.015;
     if (Math.random() < shardSpawnRate * timeFactor) createShard();
 
-    // Update Obstacles
-    gameState.obstacles.forEach((obs, i) => {
+    // Update Obstacles - use reverse loop to avoid splice issues
+    for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+        const obs = gameState.obstacles[i];
         obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor;
-        if (obs.y > GAME_HEIGHT + 30) gameState.obstacles.splice(i, 1);
-    });
+        if (obs.y > GAME_HEIGHT + 30) {
+            gameState.obstacles.splice(i, 1);
+        }
+    }
 
-    // Update Shards with improved collection mechanics
-    gameState.shardsCollectible.forEach((shard, i) => {
+    // Update Shards with improved collection mechanics - use reverse loop
+    const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20);
+    const collectionRadius = PLAYER_SIZE / 2 + magnetRadius;
+    const collectionRadiusSquared = collectionRadius * collectionRadius; // Avoid Math.sqrt
+    
+    for (let i = gameState.shardsCollectible.length - 1; i >= 0; i--) {
+        const shard = gameState.shardsCollectible[i];
         shard.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
+        
+        // Use squared distance to avoid expensive Math.sqrt
         const dx = shard.x - gameState.player.x;
         const dy = shard.y - gameState.player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20); // Increased base magnet radius
+        const distanceSquared = dx * dx + dy * dy;
         
         // Enhanced collection with visual feedback
-        if (distance < PLAYER_SIZE / 2 + magnetRadius) {
+        if (distanceSquared < collectionRadiusSquared) {
             gameState.currentRunShards++;
             shardValue.textContent = gameState.currentRunShards;
             
             // Reduced particle effect for better performance
-            createParticleExplosion(shard.x, shard.y, 8, '#f300ff');
+            createParticleExplosion(shard.x, shard.y, 6, '#f300ff');
             
             // Haptic feedback for shard collection
             triggerHapticFeedback('light');
@@ -1817,7 +1838,7 @@ function updateGame() {
             // Add screen shake effect for better feedback
             if (gameState.currentRunShards % 5 === 0) {
                 // Every 5th shard gives extra feedback
-                createParticleExplosion(shard.x, shard.y, 12, '#ffffff');
+                createParticleExplosion(shard.x, shard.y, 10, '#ffffff');
                 triggerHapticFeedback('success');
             }
             
@@ -1825,7 +1846,7 @@ function updateGame() {
         } else if (shard.y > GAME_HEIGHT + 20) {
             gameState.shardsCollectible.splice(i, 1);
         }
-    });
+    }
 
     checkCollisions();
 }
@@ -1985,13 +2006,19 @@ function drawPlayerCharacter(ctx, x, y, size, time) {
 }
 
 function drawPlayerTrail(ctx) {
-  gameState.player.trail.forEach((p, i) => {
+  // Only draw trail if it has particles and optimize drawing
+  if (gameState.player.trail.length === 0) return;
+  
+  for (let i = 0; i < gameState.player.trail.length; i++) {
+    const p = gameState.player.trail[i];
+    if (p.alpha <= 0) continue; // Skip invisible particles
+    
     ctx.beginPath();
-    const alpha = p.alpha * (i / gameState.player.trail.length);
-    ctx.fillStyle = `rgba(0, 243, 255, ${alpha * 0.5})`;
+    const alpha = p.alpha * (i / gameState.player.trail.length) * 0.5;
+    ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
     ctx.arc(p.x, p.y + 10, i / 4, 0, Math.PI * 2);
     ctx.fill();
-  });
+  }
 }
 
 function drawTouchIndicator(ctx) {
@@ -2033,31 +2060,36 @@ function drawGame() {
   ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   if (gameState.player.isAlive) {
     drawPlayerTrail(ctx);
-    drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, Date.now() / 1000);
+    // Cache time calculation to avoid Date.now() call
+    const currentTime = gameState.lastFrameTime || Date.now();
+    drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, currentTime / 1000);
   }
-  // Draw obstacles with reduced shadow effects for better performance
-  gameState.obstacles.forEach(obs => {
+  
+  // Draw obstacles with minimal shadow effects for better performance
+  for (let i = 0; i < gameState.obstacles.length; i++) {
+    const obs = gameState.obstacles[i];
     const color = obs.isFracture ? '#00a2ff' : '#ff007a';
     ctx.fillStyle = color;
     ctx.shadowColor = color;
-    ctx.shadowBlur = 8; // Reduced shadow blur
+    ctx.shadowBlur = 4; // Further reduced shadow blur
     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-  });
+  }
   
-  // Draw shards with reduced shadow effects
-  gameState.shardsCollectible.forEach(shard => {
+  // Draw shards with minimal shadow effects
+  for (let i = 0; i < gameState.shardsCollectible.length; i++) {
+    const shard = gameState.shardsCollectible[i];
     ctx.fillStyle = '#f300ff';
     ctx.shadowColor = '#f300ff';
-    ctx.shadowBlur = 8; // Reduced shadow blur
+    ctx.shadowBlur = 4; // Further reduced shadow blur
     ctx.beginPath(); 
     ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2); 
     ctx.fill();
-  });
+  }
   
   // Draw and update particles with proper cleanup
   for (let i = gameState.particles.length - 1; i >= 0; i--) {
     const p = gameState.particles[i];
-    p.alpha -= 0.03; // Faster fade for better performance
+    p.alpha -= 0.05; // Even faster fade for better performance
     if (p.alpha <= 0) {
       gameState.particles.splice(i, 1);
       continue;
@@ -2066,7 +2098,6 @@ function drawGame() {
     p.y += p.vy;
     
     // Use rgba for better performance than string concatenation
-    const alpha = Math.floor(p.alpha * 255);
     ctx.fillStyle = `rgba(${p.colorR}, ${p.colorG}, ${p.colorB}, ${p.alpha})`;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -2074,8 +2105,8 @@ function drawGame() {
   }
 
   // Limit particle array size to prevent memory issues
-  if (gameState.particles.length > 100) {
-    gameState.particles = gameState.particles.slice(-80);
+  if (gameState.particles.length > 60) {
+    gameState.particles = gameState.particles.slice(-50);
   }
 
   ctx.shadowBlur = 0;
@@ -2247,6 +2278,9 @@ const frameInterval = 1000 / targetFPS;
 
 function gameLoop(currentTime) {
   if (currentTime - lastFrameTime >= frameInterval) {
+    // Cache frame time for use in drawing functions
+    gameState.lastFrameTime = currentTime;
+    
     if (gameState.gameActive) {
       updateGame();
     }
