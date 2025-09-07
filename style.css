@@ -1,38 +1,47 @@
-    * {
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   touch-action: manipulation;
-  /* Add these lines to prevent selection */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
-    
-    body {
-      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-      background: linear-gradient(135deg, #0c0c2d, #000);
-      color: white;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #0c0c2d, #000);
+  color: white;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
 		
-    #gameContainer {
+#gameContainer {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  max-width: 100vw;
-  max-height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   touch-action: none;
   display: flex;
@@ -43,86 +52,234 @@
 
 #gameCanvas {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  max-width: 500px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
   max-height: 100vh;
+  max-height: 100dvh;
   background: transparent;
   z-index: 1;
+  display: block;
+  touch-action: none;
 }
 
-/* Update responsive adjustments */
-@media (min-width: 768px) {
-  #gameCanvas {
-    max-width: 400px;
-    height: min(100vh, 800px);
+/* Mobile-first responsive design */
+/* Base styles are for mobile (320px+) */
+
+/* Small mobile devices */
+@media (max-width: 375px) {
+  .menu-btn {
+    font-size: 16px;
+    padding: 12px 20px;
+    margin: 8px 0;
+  }
+  
+  #menuScreen h1 {
+    font-size: 32px;
+  }
+  
+  .score-display, .shard-count {
+    font-size: 16px;
+  }
+  
+  .time-bend-ui {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .time-bend-icon {
+    font-size: 24px;
+  }
+  
+  #gameOverScreen {
+    padding: 15px;
+  }
+  
+  .menu-btn-container {
+    max-width: 300px;
+    gap: 12px;
   }
 }
 
-@media (max-width: 480px) {
+/* Medium mobile devices */
+@media (min-width: 376px) and (max-width: 480px) {
   .menu-btn {
     font-size: 18px;
-    padding: 12px 30px;
+    padding: 14px 30px;
     margin: 10px 0;
   }
   
   #menuScreen h1 {
-    font-size: 36px;
+    font-size: 40px;
   }
   
   .score-display, .shard-count {
-    font-size: 18px;
+    font-size: 20px;
+  }
+  
+  #gameOverScreen {
+    padding: 18px;
+  }
+  
+  .menu-btn-container {
+    max-width: 350px;
+    gap: 14px;
+  }
+}
+
+/* Large mobile devices and small tablets */
+@media (min-width: 481px) and (max-width: 767px) {
+  .menu-btn {
+    font-size: 20px;
+    padding: 16px 35px;
+    margin: 12px 0;
+  }
+  
+  #menuScreen h1 {
+    font-size: 44px;
+  }
+  
+  .score-display, .shard-count {
+    font-size: 22px;
+  }
+  
+  #gameOverScreen {
+    padding: 20px;
+  }
+  
+  .menu-btn-container {
+    max-width: 380px;
+    gap: 16px;
+  }
+}
+
+/* Tablets and desktop */
+@media (min-width: 768px) {
+  #gameCanvas {
+    max-width: 500px;
+    max-height: 800px;
+    width: 500px;
+    height: 800px;
+  }
+  
+  .menu-btn {
+    font-size: 22px;
+    padding: 18px 40px;
+    margin: 15px 0;
+  }
+  
+  #menuScreen h1 {
+    font-size: 48px;
+  }
+  
+  .score-display, .shard-count {
+    font-size: 24px;
+  }
+  
+  #gameOverScreen {
+    padding: 25px;
+  }
+  
+  .menu-btn-container {
+    max-width: 400px;
+    gap: 18px;
   }
 }
     
-    #uiContainer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10;
-      pointer-events: none;
-    }
+#uiContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.score-display {
+  position: absolute;
+  top: env(safe-area-inset-top, 20px);
+  top: max(env(safe-area-inset-top, 0px), 20px);
+  left: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.shard-count {
+  position: absolute;
+  top: env(safe-area-inset-top, 20px);
+  top: max(env(safe-area-inset-top, 0px), 20px);
+  right: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #f300ff, 0 0 20px #f300ff;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.movement-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: bold;
+  color: rgba(0, 243, 255, 0.8);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  animation: fadeInOut 3s ease-in-out;
+  opacity: 0;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  20%, 80% { opacity: 1; }
+}
     
-    .score-display {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 24px;
-      font-weight: bold;
-      text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
-      pointer-events: none;
-    }
-    
-    .shard-count {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 24px;
-      font-weight: bold;
-      text-shadow: 0 0 10px #f300ff, 0 0 20px #f300ff;
-      pointer-events: none;
-    }
-    
-    .time-bend-ui {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.5);
-      border: 2px solid #00f3ff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      pointer-events: auto;
-      touch-action: manipulation;
-      z-index: 20;
-    }
+.time-bend-ui {
+  position: absolute;
+  bottom: env(safe-area-inset-bottom, 30px);
+  bottom: max(env(safe-area-inset-bottom, 0px), 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 3px solid #00f3ff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  touch-action: manipulation;
+  z-index: 20;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.time-bend-ui:active {
+  transform: translateX(-50%) scale(0.95);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.8);
+}
     
     .time-bend-icon {
       font-size: 30px;
@@ -236,7 +393,7 @@
   100% { width: 100%; }
 }
 		
-    /*-- REPLACEMENT FOR: #menuScreen --*/
+/*-- REPLACEMENT FOR: #menuScreen --*/
 #menuScreen {
   position: absolute;
   top: 0;
@@ -250,11 +407,12 @@
   justify-content: flex-start;
   z-index: 100;
   padding: 20px;
-  padding-top: 5vh;
-  padding-bottom: 5vh;
+  padding-top: max(env(safe-area-inset-top, 0px), 5vh);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 5vh);
   text-align: center;
   overflow-y: auto;
   pointer-events: auto;
+  -webkit-overflow-scrolling: touch;
 }
     
     #menuScreen h1 {
@@ -276,29 +434,34 @@
       line-height: 1.5;
     }
     
-    .menu-btn {
-      background: linear-gradient(to right, #0047ff, #00a2ff);
-      border: none;
-      border-radius: 50px;
-      color: white;
-      font-size: 22px;
-      font-weight: bold;
-      padding: 15px 40px;
-      margin: 15px 0;
-      width: 80%;
-      max-width: 350px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 5px 15px rgba(0, 162, 255, 0.4);
-      letter-spacing: 1px;
-      pointer-events: auto;
-      touch-action: manipulation;
-    }
-    
-    .menu-btn:active {
-      transform: scale(0.95);
-      box-shadow: 0 3px 10px rgba(0, 162, 255, 0.6);
-    }
+.menu-btn {
+  background: linear-gradient(to right, #0047ff, #00a2ff);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 16px 32px;
+  margin: 12px 0;
+  width: 90%;
+  max-width: 320px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 162, 255, 0.4);
+  letter-spacing: 0.5px;
+  pointer-events: auto;
+  touch-action: manipulation;
+  min-height: 56px; /* Minimum touch target size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(0, 162, 255, 0.6);
+  background: linear-gradient(to right, #0038cc, #0088cc);
+}
     
     .menu-btn.fracture {
       background: linear-gradient(to right, #7b00ff, #f300ff);
@@ -325,6 +488,7 @@
       text-align: center;
       opacity: 0;
       transition: opacity 0.5s ease;
+      box-sizing: border-box;
     }
     
     .stats-container {
@@ -368,6 +532,9 @@
       width: 100%;
       max-width: 400px;
       gap: 15px;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
     }
     
     /*-- REPLACEMENT FOR THE SHARED SCREEN STYLES --*/
@@ -1155,17 +1322,45 @@
       z-index: 5;
     }
     
-    /* Responsive adjustments */
-    @media (max-height: 650px) {
-      .menu-btn {
-        padding: 12px 30px;
-        font-size: 18px;
-      }
-      #menuScreen h1 {
-        font-size: 36px;
-      }
-      .score-display, .shard-count {
-        font-size: 20px;
-        top: 15px;
-      }
-    }
+/* Mobile-specific improvements */
+@media (max-height: 650px) {
+  .menu-btn {
+    padding: 12px 30px;
+    font-size: 18px;
+  }
+  #menuScreen h1 {
+    font-size: 36px;
+  }
+  .score-display, .shard-count {
+    font-size: 20px;
+    top: 15px;
+  }
+}
+
+/* Prevent zoom on input focus */
+input, textarea, select {
+  font-size: 16px;
+}
+
+/* Improve touch targets */
+button, .menu-btn, .buy-btn, .auth-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Smooth scrolling for mobile */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh */
+body {
+  overscroll-behavior: none;
+}
+
+/* Improve text rendering on mobile */
+body, button, input {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
