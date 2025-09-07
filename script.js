@@ -2020,20 +2020,24 @@ function drawPlayerTrail(ctx) {
     const p = gameState.player.trail[i];
     if (p.alpha <= 0) continue; // Skip invisible particles
     
-    // Create flowing tail effect with gradient
+    // Create flowing tail effect with proper tapering
     const progress = i / gameState.player.trail.length;
-    const size = (1 - progress) * 8 + 2; // Larger at the end, smaller at the tip
+    // Make tail thinner at the end - start large at spirit, taper to very thin
+    const size = (1 - progress) * 6 + 1; // Start at 7px, end at 1px
     const alpha = p.alpha * (1 - progress) * 0.8; // Fade from full to transparent
+    
+    // Position tail at the bottom of the spirit (offset downward)
+    const tailY = p.y + 15; // Offset to bottom of spirit
     
     ctx.beginPath();
     ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
-    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+    ctx.arc(p.x, tailY, size, 0, Math.PI * 2);
     ctx.fill();
     
     // Add inner glow effect
     ctx.beginPath();
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
-    ctx.arc(p.x, p.y, size * 0.5, 0, Math.PI * 2);
+    ctx.arc(p.x, tailY, size * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
