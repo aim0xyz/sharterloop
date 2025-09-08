@@ -1783,10 +1783,10 @@ function updateGame() {
         shardValue.textContent = gameState.currentRunShards;
     }
 
-    // Time bend orb spawning - 50% chance every 30 seconds
-    const timeBendOrbInterval = 30000; // 30 seconds in milliseconds
+    // Time bend orb spawning - 10% chance every 5 seconds
+    const timeBendOrbInterval = 5000; // 5 seconds in milliseconds
     if (currentTime - gameState.timeBend.lastOrbSpawn >= timeBendOrbInterval) {
-        if (Math.random() < 0.5) { // 50% chance
+        if (Math.random() < 0.1) { // 10% chance
             createTimeBendOrb();
         }
         gameState.timeBend.lastOrbSpawn = currentTime;
@@ -1898,15 +1898,28 @@ function updateGame() {
         orb.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
         orb.pulseTime += 0.1;
         
-        // Check collision with player
+        // Check collision with player (including magnet effect)
         const dx = orb.x - gameState.player.x;
         const dy = orb.y - gameState.player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distanceSquared = dx * dx + dy * dy;
         
-        if (distance < orb.size + PLAYER_SIZE / 2) {
-            // Collect time bend orb
-            gameState.timeBend.currentUses++;
-            timeBendCounter.textContent = gameState.timeBend.currentUses;
+        if (distanceSquared < collectionRadiusSquared) {
+            // Collect time bend orb and immediately activate time bend
+            if (!gameState.timeBend.active && gameState.timeBend.cooldown <= 0) {
+                gameState.timeBend.active = true;
+                gameState.timeBend.cooldown = gameState.timeBend.maxCooldown;
+                
+                // Show time bend effect
+                timeBendEffect.style.opacity = '1';
+                
+                setTimeout(() => { 
+                    gameState.timeBend.active = false;
+                    timeBendEffect.style.opacity = '0';
+                }, gameState.timeBend.duration);
+                
+                timeBendCooldown.style.animation = `cooldown ${gameState.timeBend.maxCooldown/1000}s linear forwards`;
+                setTimeout(() => { timeBendCooldown.style.animation = ''; }, gameState.timeBend.maxCooldown);
+            }
             
             // Visual and haptic feedback
             createParticleExplosion(orb.x, orb.y, 12, '#ffff00');
@@ -2355,13 +2368,7 @@ function drawGame() {
     ctx.arc(orb.x, orb.y, orbSize * 0.5, 0, Math.PI * 2);
     ctx.fill();
     
-    // Time symbol (⏳)
-    ctx.fillStyle = '#000000';
-    ctx.shadowBlur = 0;
-    ctx.font = `${Math.floor(orbSize * 0.8)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('⏳', orb.x, orb.y);
+    // No symbol - just the glowing orb
   }
   
   // Draw and update particles with proper cleanup
