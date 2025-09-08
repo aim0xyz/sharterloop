@@ -52,7 +52,7 @@
       obstacles: [],
       shardsCollectible: [],
       particles: [],
-      timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, duration: 2000, active: false },
+      timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, baseDuration: 2000, duration: 2000, active: false },
       upgrades: { timeBendLevel: 1, shardMagnetLevel: 0, phantomPhaseLevel: 0 },
       relics: { phantomPhase: false, phantomPhaseUsed: 0 },
       gameActive: false,
@@ -932,6 +932,10 @@ function updateDailyCheckInUI() {
 
             dayDiv.innerHTML += `
               <div class="day-number">${dayLabel}</div>
+              <div class="upgrade-desc">Increase the duration of time bend effect. Starts at 2 seconds, +0.1 seconds per upgrade.</div>
+              <div class="upgrade-level">
+                <span>Current Duration: <span id="timeBendLevel">2.0s</span></span>
+              </div>
               <div class="day-reward">${rewards[i - 1]} ✦</div>
             `;
             calendarDays.appendChild(dayDiv);
@@ -1262,8 +1266,10 @@ function resetGameState() {
   gameState.shardsCollectible = [];
   gameState.particles = [];
   gameState.touchPosition = null; // Clear touch indicator
-  gameState.timeBend.maxUses = gameState.upgrades.timeBendLevel;
-  gameState.timeBend.currentUses = gameState.timeBend.maxUses;
+  gameState.timeBend.maxUses = 1; // Always 1 use per run
+  gameState.timeBend.currentUses = 1;
+  // Calculate duration based on upgrade level: 2 seconds + 0.1 seconds per upgrade
+  gameState.timeBend.duration = gameState.timeBend.baseDuration + ((gameState.upgrades.timeBendLevel - 1) * 100);
   gameState.timeBend.cooldown = 0;
   gameState.timeBend.active = false;
   gameState.relics.phantomPhaseUsed = 0;
@@ -1560,7 +1566,8 @@ function updateShopUI() {
         // Time Bend
         const timeBendLevel = gameState.upgrades.timeBendLevel;
         const timeBendCost = getUpgradeCost(50, timeBendLevel - 1);
-        timeBendLevelEl.textContent = timeBendLevel;
+        const duration = 2.0 + ((timeBendLevel - 1) * 0.1);
+        timeBendLevelEl.textContent = duration.toFixed(1) + 's';
         timeBendCostEl.textContent = `${timeBendCost} ✦`;
         upgradeTimeBendBtn.disabled = gameState.totalShards < timeBendCost;
         
@@ -2096,77 +2103,9 @@ function drawUpgradeEffects(ctx, x, y, size) {
 
 
 function drawUpgradeStatus(ctx) {
-  const activeUpgrades = [];
-  
-  // Check which upgrades are active/available
-  if (gameState.timeBend.active) {
-    activeUpgrades.push({ type: 'timeBend', symbol: '⏰', color: '#ffff00', duration: gameState.timeBend.duration, maxDuration: 2000 });
-  }
-  if (gameState.upgrades.shardMagnetLevel > 0) {
-    activeUpgrades.push({ type: 'magnet', symbol: '🧲', color: '#00aaff', level: gameState.upgrades.shardMagnetLevel });
-  }
-  if (gameState.upgrades.phantomPhaseLevel > 0) {
-    const availableUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
-    if (availableUses > 0) {
-      activeUpgrades.push({ type: 'phantom', symbol: '👻', color: '#ffffff', uses: availableUses });
-    }
-  }
-  
-  // Draw active upgrade indicators
-  for (let i = 0; i < activeUpgrades.length; i++) {
-    const upgrade = activeUpgrades[i];
-    const x = 20 + i * 60;
-    const y = 20;
-    
-    // Background circle
-    ctx.fillStyle = upgrade.color;
-    ctx.shadowColor = upgrade.color;
-    ctx.shadowBlur = 6;
-    ctx.beginPath();
-    ctx.arc(x, y, 20, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Symbol
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 2;
-    ctx.fillText(upgrade.symbol, x, y);
-    
-    // Duration bar for time bend
-    if (upgrade.type === 'timeBend' && upgrade.duration !== undefined) {
-      const progress = upgrade.duration / upgrade.maxDuration;
-      const barWidth = 30;
-      const barHeight = 4;
-      
-      // Background bar
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 0;
-      ctx.fillRect(x - barWidth/2, y + 25, barWidth, barHeight);
-      
-      // Progress bar
-      ctx.fillStyle = upgrade.color;
-      ctx.fillRect(x - barWidth/2, y + 25, barWidth * progress, barHeight);
-    }
-    
-    // Level indicator for magnet
-    if (upgrade.type === 'magnet' && upgrade.level !== undefined) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${upgrade.level}`, x, y + 30);
-    }
-    
-    // Uses indicator for phantom
-    if (upgrade.type === 'phantom' && upgrade.uses !== undefined) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${upgrade.uses}`, x, y + 30);
-    }
-  }
+  // UI indicators removed as requested - visual effects remain on the spirit
+  // The spirit will still show magnet, time bend, and phantom relic rings
+  return;
 }
 
 // Screen shake functions

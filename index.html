@@ -41,12 +41,12 @@
       <div class="score-display">Score: <span id="scoreValue">0</span></div>
       <div class="shard-count">✦ <span id="shardValue">0</span></div>
       <div class="movement-hint" id="movementHint">Move anywhere!</div>
-      <div class="time-bend-ui" id="timeBendBtn">
+      <div class="time-bend-ui" id="timeBendBtn" style="display: none;">
         <div class="time-bend-icon">⏳</div>
         <div class="time-bend-cooldown" id="timeBendCooldown"></div>
         <div class="time-bend-counter" id="timeBendCounter">1</div>
       </div>
-      <div class="phantom-relic-ui" id="phantomRelicBtn">
+      <div class="phantom-relic-ui" id="phantomRelicBtn" style="display: none;">
         <div class="phantom-relic-icon">👻</div>
         <div class="phantom-relic-counter" id="phantomRelicCounter">0</div>
       </div>
@@ -103,9 +103,9 @@
           <div class="upgrade-title">Time Bend Capacity</div>
           <div class="upgrade-cost" id="timeBendCost">50 ✦</div>
         </div>
-        <div class="upgrade-desc">Increase the number of time bends you can use per run.</div>
+        <div class="upgrade-desc">Increase the duration of time bend effect. Starts at 2 seconds, +0.1 seconds per upgrade.</div>
         <div class="upgrade-level">
-            <span>Current Uses: <span id="timeBendLevel">1</span></span>
+            <span>Current Duration: <span id="timeBendLevel">2.0s</span></span>
         </div>
         <button class="buy-btn" id="upgradeTimeBendBtn">Upgrade</button>
       </div>
