@@ -1419,6 +1419,12 @@ function startGame(mode) {
       
   gameState.mode = mode;
   resetGameState();
+  
+  // Test screen shake when game starts
+  setTimeout(() => {
+    triggerScreenShake(20, 300);
+  }, 1000);
+  
   menuScreen.style.display = 'none';
   shopScreen.style.display = 'none';
   leaderboardScreen.style.display = 'none';
@@ -1856,9 +1862,9 @@ function updateGame() {
                 // Every 5th shard gives extra feedback
                 createParticleExplosion(shard.x, shard.y, 10, '#ffffff');
                 triggerHapticFeedback('success');
-                triggerScreenShake(5, 100); // Light screen shake for milestone
+                triggerScreenShake(15, 200); // Strong screen shake for milestone
             } else {
-                triggerScreenShake(2, 50); // Very light shake for regular shards
+                triggerScreenShake(8, 100); // More noticeable shake for regular shards
             }
             
             gameState.shardsCollectible.splice(i, 1);
@@ -1967,7 +1973,7 @@ function checkCollisions() {
         return;
       } else {
         triggerHapticFeedback('heavy'); // Strong feedback for collision
-        triggerScreenShake(15, 300); // Strong screen shake on collision
+        triggerScreenShake(25, 400); // Very strong screen shake on collision
         endGame();
         return;
       }
@@ -2041,6 +2047,7 @@ function drawPlayerTrail(ctx) {
 function triggerScreenShake(intensity = 10, duration = 200) {
   gameState.screenShake.intensity = intensity;
   gameState.screenShake.duration = duration;
+  console.log(`Screen shake triggered: intensity=${intensity}, duration=${duration}`); // Debug log
 }
 
 function updateScreenShake() {
@@ -2053,9 +2060,15 @@ function updateScreenShake() {
       
       gameState.screenShake.x = (Math.random() - 0.5) * currentIntensity;
       gameState.screenShake.y = (Math.random() - 0.5) * currentIntensity;
+      
+      // Debug log every 10th frame to avoid spam
+      if (Math.random() < 0.1) {
+        console.log(`Screen shake active: x=${gameState.screenShake.x.toFixed(2)}, y=${gameState.screenShake.y.toFixed(2)}, intensity=${currentIntensity.toFixed(2)}`);
+      }
     } else {
       gameState.screenShake.x = 0;
       gameState.screenShake.y = 0;
+      console.log('Screen shake ended');
     }
   }
 }
