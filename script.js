@@ -1748,14 +1748,14 @@ function useHeart() {
         gameState.player.isAlive = true;
         gameState.gameActive = true;
         
-        // Activate immortality for 2 seconds
+        // Activate immortality for 5 seconds
         gameState.immortal.active = true;
-        gameState.immortal.duration = 2000; // 2 seconds
+        gameState.immortal.duration = 5000; // 5 seconds
         
         setTimeout(() => {
             gameState.immortal.active = false;
             gameState.immortal.duration = 0;
-        }, 2000);
+        }, 5000);
         
         // Save updated heart count
         if (currentUser) {
