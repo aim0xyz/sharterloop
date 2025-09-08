@@ -1672,10 +1672,9 @@ finalScore.textContent = formatScore(gameState.score);
     }
     
 function activateTimeBend() {
-      if (gameState.timeBend.currentUses > 0 && !gameState.timeBend.active && gameState.timeBend.cooldown <= 0) {
+      if (gameState.timeBend.currentUses > 0) {
         gameState.timeBend.currentUses--;
         gameState.timeBend.active = true;
-        gameState.timeBend.cooldown = gameState.timeBend.maxCooldown;
         
         // Haptic feedback for time bend activation
         triggerHapticFeedback('medium');
@@ -1690,9 +1689,6 @@ function activateTimeBend() {
           gameState.timeBend.active = false;
           timeBendEffect.style.opacity = '0';
         }, gameState.timeBend.duration);
-        
-        timeBendCooldown.style.animation = `cooldown ${gameState.timeBend.maxCooldown/1000}s linear forwards`;
-        setTimeout(() => { timeBendCooldown.style.animation = ''; }, gameState.timeBend.maxCooldown);
       }
     }
 
@@ -1905,21 +1901,15 @@ function updateGame() {
         
         if (distanceSquared < collectionRadiusSquared) {
             // Collect time bend orb and immediately activate time bend
-            if (!gameState.timeBend.active && gameState.timeBend.cooldown <= 0) {
-                gameState.timeBend.active = true;
-                gameState.timeBend.cooldown = gameState.timeBend.maxCooldown;
-                
-                // Show time bend effect
-                timeBendEffect.style.opacity = '1';
-                
-                setTimeout(() => { 
-                    gameState.timeBend.active = false;
-                    timeBendEffect.style.opacity = '0';
-                }, gameState.timeBend.duration);
-                
-                timeBendCooldown.style.animation = `cooldown ${gameState.timeBend.maxCooldown/1000}s linear forwards`;
-                setTimeout(() => { timeBendCooldown.style.animation = ''; }, gameState.timeBend.maxCooldown);
-            }
+            gameState.timeBend.active = true;
+            
+            // Show time bend effect
+            timeBendEffect.style.opacity = '1';
+            
+            setTimeout(() => { 
+                gameState.timeBend.active = false;
+                timeBendEffect.style.opacity = '0';
+            }, gameState.timeBend.duration);
             
             // Visual and haptic feedback
             createParticleExplosion(orb.x, orb.y, 12, '#ffff00');
