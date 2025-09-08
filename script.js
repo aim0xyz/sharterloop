@@ -51,8 +51,9 @@
       touchPosition: null,
       obstacles: [],
       shardsCollectible: [],
+      timeBendOrbs: [],
       particles: [],
-      timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, baseDuration: 2000, duration: 2000, active: false },
+      timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, baseDuration: 2000, duration: 2000, active: false, lastOrbSpawn: 0 },
       upgrades: { timeBendLevel: 1, shardMagnetLevel: 0, phantomPhaseLevel: 0 },
       relics: { phantomPhase: false, phantomPhaseUsed: 0 },
       gameActive: false,
@@ -932,10 +933,6 @@ function updateDailyCheckInUI() {
 
             dayDiv.innerHTML += `
               <div class="day-number">${dayLabel}</div>
-              <div class="upgrade-desc">Increase the duration of time bend effect. Starts at 2 seconds, +0.1 seconds per upgrade.</div>
-              <div class="upgrade-level">
-                <span>Current Duration: <span id="timeBendLevel">2.0s</span></span>
-              </div>
               <div class="day-reward">${rewards[i - 1]} ✦</div>
             `;
             calendarDays.appendChild(dayDiv);
@@ -1264,6 +1261,7 @@ function resetGameState() {
   gameState.player = { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, targetY: GAME_HEIGHT - 100, size: PLAYER_SIZE, isAlive: true, trail: [] };
   gameState.obstacles = [];
   gameState.shardsCollectible = [];
+  gameState.timeBendOrbs = [];
   gameState.particles = [];
   gameState.touchPosition = null; // Clear touch indicator
   gameState.timeBend.maxUses = 1; // Always 1 use per run
@@ -1272,6 +1270,7 @@ function resetGameState() {
   gameState.timeBend.duration = gameState.timeBend.baseDuration + ((gameState.upgrades.timeBendLevel - 1) * 100);
   gameState.timeBend.cooldown = 0;
   gameState.timeBend.active = false;
+  gameState.timeBend.lastOrbSpawn = 0;
   gameState.relics.phantomPhaseUsed = 0;
   // Reset phantom phase availability
   gameState.relics.phantomPhase = gameState.upgrades.phantomPhaseLevel > 0;
@@ -1784,6 +1783,15 @@ function updateGame() {
         shardValue.textContent = gameState.currentRunShards;
     }
 
+    // Time bend orb spawning - 50% chance every 30 seconds
+    const timeBendOrbInterval = 30000; // 30 seconds in milliseconds
+    if (currentTime - gameState.timeBend.lastOrbSpawn >= timeBendOrbInterval) {
+        if (Math.random() < 0.5) { // 50% chance
+            createTimeBendOrb();
+        }
+        gameState.timeBend.lastOrbSpawn = currentTime;
+    }
+
     const basePathSpeed = isFracture ? 4 : 2;
     const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
@@ -1881,6 +1889,34 @@ function updateGame() {
             gameState.shardsCollectible.splice(i, 1);
         } else if (shard.y > GAME_HEIGHT + 20) {
             gameState.shardsCollectible.splice(i, 1);
+        }
+    }
+
+    // Update time bend orbs
+    for (let i = gameState.timeBendOrbs.length - 1; i >= 0; i--) {
+        const orb = gameState.timeBendOrbs[i];
+        orb.y += (isFracture ? 3 : 2) * gameState.speedMultiplier * timeFactor;
+        orb.pulseTime += 0.1;
+        
+        // Check collision with player
+        const dx = orb.x - gameState.player.x;
+        const dy = orb.y - gameState.player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < orb.size + PLAYER_SIZE / 2) {
+            // Collect time bend orb
+            gameState.timeBend.currentUses++;
+            timeBendCounter.textContent = gameState.timeBend.currentUses;
+            
+            // Visual and haptic feedback
+            createParticleExplosion(orb.x, orb.y, 12, '#ffff00');
+            triggerHapticFeedback('medium');
+            triggerScreenShake(12, 150);
+            
+            gameState.timeBendOrbs.splice(i, 1);
+        } else if (orb.y > GAME_HEIGHT + 20) {
+            // Remove orb if it goes off screen
+            gameState.timeBendOrbs.splice(i, 1);
         }
     }
 
@@ -2298,6 +2334,36 @@ function drawGame() {
     ctx.fill();
   }
   
+  // Draw time bend orbs with pulsing effect
+  for (let i = 0; i < gameState.timeBendOrbs.length; i++) {
+    const orb = gameState.timeBendOrbs[i];
+    const pulse = Math.sin(orb.pulseTime) * 0.3 + 0.7; // Pulsing between 0.4 and 1.0
+    const orbSize = orb.size * pulse;
+    
+    // Outer glow
+    ctx.fillStyle = '#ffff00';
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(orb.x, orb.y, orbSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Inner core
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.arc(orb.x, orb.y, orbSize * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Time symbol (⏳)
+    ctx.fillStyle = '#000000';
+    ctx.shadowBlur = 0;
+    ctx.font = `${Math.floor(orbSize * 0.8)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⏳', orb.x, orb.y);
+  }
+  
   // Draw and update particles with proper cleanup
   for (let i = gameState.particles.length - 1; i >= 0; i--) {
     const p = gameState.particles[i];
@@ -2488,6 +2554,20 @@ function createObstacleLayer(baseY) {
       }
     }
   }
+}
+
+function createTimeBendOrb() {
+  // Create time bend orb at top of screen
+  const startY = -20;
+  const orbX = Math.random() * (GAME_WIDTH - 40) + 20; // Keep away from edges
+  
+  gameState.timeBendOrbs.push({
+    x: orbX,
+    y: startY,
+    size: 15,
+    pulseTime: 0,
+    collected: false
+  });
 }
 
 function createShard() {
