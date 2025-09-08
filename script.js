@@ -47,6 +47,7 @@
       totalShards: 0,
       mode: 'safe',
       player: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, targetY: GAME_HEIGHT - 100, size: PLAYER_SIZE, isAlive: true, trail: [] },
+      screenShake: { intensity: 0, duration: 0, x: 0, y: 0 },
       touchPosition: null,
       obstacles: [],
       shardsCollectible: [],
@@ -1727,6 +1728,9 @@ function createParticleExplosion(x, y, count, color) {
 function updateGame() {
     if (!gameState.gameActive) return;
 
+    // Update screen shake
+    updateScreenShake();
+
     // Cache current time to avoid multiple Date.now() calls
     const currentTime = Date.now();
     const timeFactor = gameState.timeBend.active ? 0.4 : 1.0;
@@ -1805,6 +1809,18 @@ function updateGame() {
     for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
         const obs = gameState.obstacles[i];
         obs.y += (obs.speed * gameState.speedMultiplier + elapsedSecondsForSpeed * 0.005) * timeFactor;
+        
+        // Update moving obstacles
+        if (obs.isMoving) {
+            obs.moveTime += 16; // Assuming 60fps
+            // Oscillate back and forth using sine wave
+            const oscillation = Math.sin(obs.moveTime * 0.001 * obs.moveSpeed) * obs.moveRange;
+            obs.x = obs.originalX + oscillation;
+            
+            // Ensure obstacle stays within screen bounds
+            obs.x = Math.max(obs.width / 2, Math.min(GAME_WIDTH - obs.width / 2, obs.x));
+        }
+        
         if (obs.y > GAME_HEIGHT + 30) {
             gameState.obstacles.splice(i, 1);
         }
@@ -1840,6 +1856,9 @@ function updateGame() {
                 // Every 5th shard gives extra feedback
                 createParticleExplosion(shard.x, shard.y, 10, '#ffffff');
                 triggerHapticFeedback('success');
+                triggerScreenShake(5, 100); // Light screen shake for milestone
+            } else {
+                triggerScreenShake(2, 50); // Very light shake for regular shards
             }
             
             gameState.shardsCollectible.splice(i, 1);
@@ -1948,6 +1967,7 @@ function checkCollisions() {
         return;
       } else {
         triggerHapticFeedback('heavy'); // Strong feedback for collision
+        triggerScreenShake(15, 300); // Strong screen shake on collision
         endGame();
         return;
       }
@@ -2013,25 +2033,30 @@ function drawPlayerCharacter(ctx, x, y, size, time) {
 }
 
 function drawPlayerTrail(ctx) {
-  // Draw simple glowing shadow effect for performance
-  if (gameState.player.trail.length === 0) return;
-  
-  for (let i = 0; i < gameState.player.trail.length; i++) {
-    const p = gameState.player.trail[i];
-    if (p.alpha <= 0) continue; // Skip invisible particles
+  // Trail removed - no visual effect for cleaner look
+  return;
+}
+
+// Screen shake functions
+function triggerScreenShake(intensity = 10, duration = 200) {
+  gameState.screenShake.intensity = intensity;
+  gameState.screenShake.duration = duration;
+}
+
+function updateScreenShake() {
+  if (gameState.screenShake.duration > 0) {
+    gameState.screenShake.duration -= 16; // Assuming 60fps
     
-    // Simple shadow effect - just a glowing trail
-    const size = 4; // Fixed size for performance
-    const alpha = p.alpha * 0.4; // Subtle glow
-    
-    // Position tail at the bottom of the spirit (offset downward)
-    const tailY = p.y + 15; // Offset to bottom of spirit
-    
-    // Single glowing circle for performance
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
-    ctx.arc(p.x, tailY, size, 0, Math.PI * 2);
-    ctx.fill();
+    if (gameState.screenShake.duration > 0) {
+      const progress = gameState.screenShake.duration / 200; // Normalize to 0-1
+      const currentIntensity = gameState.screenShake.intensity * progress;
+      
+      gameState.screenShake.x = (Math.random() - 0.5) * currentIntensity;
+      gameState.screenShake.y = (Math.random() - 0.5) * currentIntensity;
+    } else {
+      gameState.screenShake.x = 0;
+      gameState.screenShake.y = 0;
+    }
   }
 }
 
@@ -2072,6 +2097,10 @@ function drawTouchIndicator(ctx) {
 
 function drawGame() {
   ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  
+  // Apply screen shake
+  ctx.save();
+  ctx.translate(gameState.screenShake.x, gameState.screenShake.y);
   if (gameState.player.isAlive) {
     drawPlayerTrail(ctx);
     // Cache time calculation to avoid Date.now() call
@@ -2082,10 +2111,16 @@ function drawGame() {
   // Draw obstacles with minimal shadow effects for better performance
   for (let i = 0; i < gameState.obstacles.length; i++) {
     const obs = gameState.obstacles[i];
-    const color = obs.isFracture ? '#00a2ff' : '#ff007a';
+    let color = obs.isFracture ? '#00a2ff' : '#ff007a';
+    
+    // Make moving obstacles slightly brighter to distinguish them
+    if (obs.isMoving) {
+      color = obs.isFracture ? '#00b8ff' : '#ff1a8a'; // Slightly brighter
+    }
+    
     ctx.fillStyle = color;
     ctx.shadowColor = color;
-    ctx.shadowBlur = 4; // Further reduced shadow blur
+    ctx.shadowBlur = obs.isMoving ? 6 : 4; // Slightly more glow for moving obstacles
     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
   }
   
@@ -2129,6 +2164,9 @@ function drawGame() {
   if (gameState.touchPosition) {
     drawTouchIndicator(ctx);
   }
+  
+  // Restore canvas after screen shake
+  ctx.restore();
 }
     
 function createObstacleLayer(baseY) {
@@ -2213,13 +2251,42 @@ function createObstacleLayer(baseY) {
                              fragY < guaranteedGap.y + guaranteedGap.height/2;
     
     if (!isInGuaranteedGap && !overlapsGap && Math.random() < density) {
-      gameState.obstacles.push({
+      // 30% chance for moving obstacles
+      const isMoving = Math.random() < 0.3;
+      const obstacle = {
         ...obsDefaults,
         x: fragX,
         y: fragY,
         width: fragWidth,
         height: fragHeight
-      });
+      };
+      
+      if (isMoving) {
+        // Add movement properties
+        obstacle.isMoving = true;
+        obstacle.moveSpeed = 0.5 + Math.random() * 1.0; // Slow to medium speed
+        obstacle.moveDirection = Math.random() < 0.5 ? 1 : -1; // Left or right
+        obstacle.moveRange = 30 + Math.random() * 40; // How far it moves
+        obstacle.originalX = fragX; // Store starting position
+        obstacle.moveTime = 0; // For oscillation
+        
+        // Check if moving obstacle would block the guaranteed path
+        const maxX = fragX + obstacle.moveRange;
+        const minX = fragX - obstacle.moveRange;
+        const wouldBlockPath = (maxX > guaranteedGap.x - guaranteedGap.width/2 && 
+                               minX < guaranteedGap.x + guaranteedGap.width/2);
+        
+        // If it would block the path, reduce movement range or make it non-moving
+        if (wouldBlockPath) {
+          obstacle.moveRange = Math.min(obstacle.moveRange, 15); // Reduce range
+          // If still too close, make it non-moving
+          if (Math.abs(fragX - guaranteedGap.x) < guaranteedGap.width/2 + 20) {
+            obstacle.isMoving = false;
+          }
+        }
+      }
+      
+      gameState.obstacles.push(obstacle);
     }
   }
   
