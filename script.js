@@ -2236,51 +2236,97 @@ function drawTouchIndicator(ctx) {
 
 function drawDynamicBackground() {
   // Clear canvas with dynamic background
-  const scoreIntensity = Math.min(1, gameState.score / 10000); // Normalize score to 0-1
+  const scoreIntensity = Math.min(1, gameState.score / 5000); // More sensitive to score changes
   const time = Date.now() * 0.001;
   
-  // Create gradient background that changes with score
-  const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+  // Create multiple gradient layers for more dramatic effect
+  const gradient1 = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+  const gradient2 = ctx.createRadialGradient(GAME_WIDTH/2, GAME_HEIGHT/2, 0, GAME_WIDTH/2, GAME_HEIGHT/2, Math.max(GAME_WIDTH, GAME_HEIGHT));
   
-  // Base colors that shift with score
-  const baseHue = 240 + scoreIntensity * 120; // Blue to purple to red
-  const saturation = 20 + scoreIntensity * 30; // 20% to 50% saturation
-  const lightness = 5 + scoreIntensity * 10; // 5% to 15% lightness
+  // Base colors that shift dramatically with score
+  const baseHue = 240 + scoreIntensity * 180; // Blue to purple to red to orange
+  const saturation = 30 + scoreIntensity * 50; // 30% to 80% saturation
+  const lightness = 8 + scoreIntensity * 20; // 8% to 28% lightness
   
-  gradient.addColorStop(0, `hsl(${baseHue}, ${saturation}%, ${lightness}%)`);
-  gradient.addColorStop(1, `hsl(${baseHue + 20}, ${saturation + 10}%, ${lightness + 5}%)`);
+  // Primary gradient
+  gradient1.addColorStop(0, `hsl(${baseHue}, ${saturation}%, ${lightness}%)`);
+  gradient1.addColorStop(0.5, `hsl(${baseHue + 30}, ${saturation + 10}%, ${lightness + 5}%)`);
+  gradient1.addColorStop(1, `hsl(${baseHue + 60}, ${saturation + 20}%, ${lightness + 10}%)`);
   
-  ctx.fillStyle = gradient;
+  // Secondary radial gradient for depth
+  gradient2.addColorStop(0, `hsla(${baseHue + 90}, ${saturation}%, ${lightness + 15}%, ${scoreIntensity * 0.3})`);
+  gradient2.addColorStop(0.7, `hsla(${baseHue + 120}, ${saturation + 15}%, ${lightness + 10}%, ${scoreIntensity * 0.2})`);
+  gradient2.addColorStop(1, `hsla(${baseHue + 150}, ${saturation + 25}%, ${lightness + 5}%, 0)`);
+  
+  // Draw primary background
+  ctx.fillStyle = gradient1;
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   
-  // Add animated background particles
-  const particleCount = Math.floor(scoreIntensity * 20) + 5;
+  // Draw secondary gradient for depth
+  ctx.fillStyle = gradient2;
+  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  
+  // Add animated background particles that increase with score
+  const particleCount = Math.floor(scoreIntensity * 50) + 10;
   for (let i = 0; i < particleCount; i++) {
     const x = (i * 137.5) % GAME_WIDTH; // Golden ratio distribution
-    const y = (i * 89.3 + time * 20) % GAME_HEIGHT;
-    const size = 1 + Math.sin(time + i) * 0.5;
-    const alpha = 0.1 + scoreIntensity * 0.2;
+    const y = (i * 89.3 + time * (20 + scoreIntensity * 30)) % GAME_HEIGHT;
+    const size = 1 + Math.sin(time + i) * (0.5 + scoreIntensity * 1.5);
+    const alpha = 0.1 + scoreIntensity * 0.4;
+    const particleHue = baseHue + (i * 10) % 60;
     
-    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.fillStyle = `hsla(${particleHue}, 70%, 80%, ${alpha})`;
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
   }
   
-  // Add energy waves at high scores
-  if (scoreIntensity > 0.5) {
-    const waveCount = Math.floor(scoreIntensity * 3) + 1;
+  // Add energy waves that start earlier and get more intense
+  if (scoreIntensity > 0.2) {
+    const waveCount = Math.floor(scoreIntensity * 5) + 1;
     for (let i = 0; i < waveCount; i++) {
-      const waveY = (time * 50 + i * 100) % GAME_HEIGHT;
-      const waveAlpha = (scoreIntensity - 0.5) * 0.3;
+      const waveY = (time * (50 + scoreIntensity * 100) + i * 80) % GAME_HEIGHT;
+      const waveAlpha = scoreIntensity * 0.6;
+      const waveHue = baseHue + 180;
       
-      ctx.strokeStyle = `rgba(0, 255, 255, ${waveAlpha})`;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `hsla(${waveHue}, 80%, 70%, ${waveAlpha})`;
+      ctx.lineWidth = 2 + scoreIntensity * 3;
       ctx.beginPath();
       ctx.moveTo(0, waveY);
       ctx.lineTo(GAME_WIDTH, waveY);
       ctx.stroke();
     }
+  }
+  
+  // Add pulsing energy orbs at high scores
+  if (scoreIntensity > 0.6) {
+    const orbCount = Math.floor(scoreIntensity * 3) + 1;
+    for (let i = 0; i < orbCount; i++) {
+      const orbX = (i * 200 + time * 30) % GAME_WIDTH;
+      const orbY = (i * 150 + time * 40) % GAME_HEIGHT;
+      const orbSize = 20 + Math.sin(time * 2 + i) * 10;
+      const orbAlpha = (scoreIntensity - 0.6) * 0.8;
+      const orbHue = baseHue + 240;
+      
+      // Outer glow
+      ctx.fillStyle = `hsla(${orbHue}, 90%, 80%, ${orbAlpha * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, orbSize * 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner core
+      ctx.fillStyle = `hsla(${orbHue}, 100%, 90%, ${orbAlpha})`;
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, orbSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  // Add screen distortion effect at very high scores
+  if (scoreIntensity > 0.8) {
+    const distortionIntensity = (scoreIntensity - 0.8) * 5;
+    ctx.fillStyle = `rgba(255, 255, 255, ${distortionIntensity * 0.1})`;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 }
 
