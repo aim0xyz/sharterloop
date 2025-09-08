@@ -146,7 +146,7 @@ function hideLoadingScreen() {
     const shopBtn = document.getElementById('shopBtn');
     const leaderboardBtn = document.getElementById('leaderboardBtn');
     const dailyCheckInBtn = document.getElementById('dailyCheckInBtn');
-    const referralBtn = document.getElementById('referralBtn');
+    // const referralBtn = document.getElementById('referralBtn'); // Removed - button no longer exists
     const userBadge = document.getElementById('userBadge');
     const retryBtn = document.getElementById('retryBtn');
     // const fractureRetryBtn = document.getElementById('fractureRetryBtn'); // Removed - button no longer exists
@@ -166,7 +166,7 @@ function hideLoadingScreen() {
     const claimDailyBtn = document.getElementById('claimDailyBtn');
     const dailyCheckInBackBtn = document.getElementById('dailyCheckInBackBtn');
     
-    const referralScreen = document.getElementById('referralScreen');
+    // const referralScreen = document.getElementById('referralScreen'); // Removed - element no longer exists
     const myReferralCode = document.getElementById('myReferralCode');
     const copyCodeBtn = document.getElementById('copyCodeBtn');
     const friendsReferred = document.getElementById('friendsReferred');
@@ -175,7 +175,7 @@ function hideLoadingScreen() {
     const friendCodeInput = document.getElementById('friendCodeInput');
     const submitCodeBtn = document.getElementById('submitCodeBtn');
     const referralStatus = document.getElementById('referralStatus');
-    const referralBackBtn = document.getElementById('referralBackBtn');
+    // const referralBackBtn = document.getElementById('referralBackBtn'); // Removed - element no longer exists
     
     const profileScreen = document.getElementById('profileScreen');
     const profileAvatar = document.getElementById('profileAvatar');
@@ -493,7 +493,7 @@ function setupAuthListeners() {
   // Referral buttons
   copyCodeBtn.addEventListener('click', copyReferralCode);
   submitCodeBtn.addEventListener('click', submitReferralCode);
-  referralBackBtn.addEventListener('click', showMenu);
+  // referralBackBtn.addEventListener('click', showMenu); // Removed - element no longer exists
   
   // Daily check-in buttons
   claimDailyBtn.addEventListener('click', claimDailyReward);
@@ -1368,7 +1368,7 @@ function setupEventListeners() {
   shopBtn.addEventListener('click', showShop);
   leaderboardBtn.addEventListener('click', showLeaderboard);
   dailyCheckInBtn.addEventListener('click', showDailyCheckIn);
-  referralBtn.addEventListener('click', showReferral);
+  // referralBtn.addEventListener('click', showReferral); // Removed - button no longer exists
   retryBtn.addEventListener('click', () => startGame(gameState.mode));
   // fractureRetryBtn.addEventListener('click', () => startGame('fracture')); // Removed - button no longer exists
   menuBtn.addEventListener('click', () => showMenu());
@@ -1434,7 +1434,7 @@ function startGame(mode) {
   authScreen.style.display = 'none';
   profileScreen.style.display = 'none';
   dailyCheckInScreen.style.display = 'none';
-  referralScreen.style.display = 'none';
+  // referralScreen.style.display = 'none'; // Removed - element no longer exists
 }
 
 function showMenu() {
@@ -1446,7 +1446,6 @@ function showMenu() {
       authScreen.style.display = 'none';
       profileScreen.style.display = 'none';
       dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
       gameState.gameActive = false;
     }
 
@@ -1462,7 +1461,6 @@ function showShop() {
       authScreen.style.display = 'none';
       profileScreen.style.display = 'none';
       dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
       updateShopUI();
     }
     
@@ -1478,7 +1476,7 @@ function showLeaderboard() {
       authScreen.style.display = 'none';
       profileScreen.style.display = 'none';
       dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
+      // referralScreen.style.display = 'none'; // Removed - element no longer exists
       updateLeaderboard('score');
     }
     
@@ -1494,7 +1492,7 @@ function showDailyCheckIn() {
       authScreen.style.display = 'none';
       profileScreen.style.display = 'none';
       dailyCheckInScreen.style.display = 'flex';
-      referralScreen.style.display = 'none';
+      // referralScreen.style.display = 'none'; // Removed - element no longer exists
       updateDailyCheckInUI();
     }
     
@@ -1504,14 +1502,7 @@ function showReferral() {
         return;
       }
       
-      menuScreen.style.display = 'none';
-      shopScreen.style.display = 'none';
-      leaderboardScreen.style.display = 'none';
-      authScreen.style.display = 'none';
-      profileScreen.style.display = 'none';
-      dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'flex';
-      updateReferralUI();
+      // This function is no longer needed - referrals moved to profile
     }
     
 function showProfileScreen() {
@@ -1526,8 +1517,9 @@ function showProfileScreen() {
       authScreen.style.display = 'none';
       profileScreen.style.display = 'flex';
       dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
+      // referralScreen.style.display = 'none'; // Removed - element no longer exists
       updateUserProfile();
+      updateReferralUI();
     }
     
 function showAuthScreen() {
@@ -1537,7 +1529,7 @@ function showAuthScreen() {
       authScreen.style.display = 'flex';
       profileScreen.style.display = 'none';
       dailyCheckInScreen.style.display = 'none';
-      referralScreen.style.display = 'none';
+      // referralScreen.style.display = 'none'; // Removed - element no longer exists
       updateAuthUI();
       
       // Clear input fields

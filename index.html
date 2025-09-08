@@ -62,7 +62,6 @@
       <button class="menu-btn" id="leaderboardBtn">LEADERBOARD</button>
       <button class="menu-btn" id="dailyCheckInBtn">DAILY CHECK-IN</button>
       <button class="menu-btn" id="userBadge">PROFILE</button>
-      <button class="menu-btn" id="referralBtn">REFERRALS</button>
     </div>
     
     <div id="gameOverScreen">
@@ -162,31 +161,6 @@
       <button class="menu-btn" id="dailyCheckInBackBtn">Back to Main Menu</button>
     </div>
     
-    <div id="referralScreen">
-      <h1>REFERRALS</h1>
-      <div class="referral-container">
-        <div class="referral-header">
-          <div class="referral-title">Your Referral Code</div>
-          <div class="referral-desc">Share this code with friends. You'll both get 50 shards when they use it!</div>
-        </div>
-        <div class="referral-code-container">
-          <div class="referral-code" id="myReferralCode">LOADING...</div>
-          <button class="copy-btn" id="copyCodeBtn">Copy</button>
-        </div>
-        <div class="referral-stats">
-          <div>Friends Referred: <span id="friendsReferred">0</span></div>
-          <div>Shards Earned: <span id="referralShards">0</span></div>
-        </div>
-        
-        <div class="friend-referral" id="friendReferralSection">
-          <div class="friend-referral-title">Enter Friend's Code</div>
-          <input type="text" class="friend-code-input" id="friendCodeInput" placeholder="Enter code" maxlength="8">
-          <button class="submit-code-btn" id="submitCodeBtn">Submit</button>
-          <div class="referral-status" id="referralStatus"></div>
-        </div>
-      </div>
-      <button class="menu-btn" id="referralBackBtn">Back to Main Menu</button>
-    </div>
     
     <div id="profileScreen">
       <h1>PROFILE</h1>
@@ -231,6 +205,29 @@
           <button class="save-profile-btn" id="savePasswordBtn">Update Password</button>
           <div class="profile-error" id="passwordError"></div>
           <div class="profile-success" id="passwordSuccess"></div>
+        </div>
+        
+        <div class="profile-section">
+          <div class="profile-title">Referrals</div>
+          <div class="profile-field">
+            <div class="profile-field-label">Your Referral Code</div>
+            <div class="referral-code-container">
+              <div class="referral-code" id="myReferralCode">LOADING...</div>
+              <button class="copy-btn" id="copyCodeBtn">Copy</button>
+            </div>
+            <div class="profile-desc">Share this code with friends. You'll both get 50 shards when they use it!</div>
+          </div>
+          <div class="referral-stats">
+            <div>Friends Referred: <span id="friendsReferred">0</span></div>
+            <div>Shards Earned: <span id="referralShards">0</span></div>
+          </div>
+          
+          <div class="profile-field" id="friendReferralSection">
+            <div class="profile-field-label">Enter Friend's Code</div>
+            <input type="text" class="profile-input" id="friendCodeInput" placeholder="Enter code" maxlength="8">
+            <button class="save-profile-btn" id="submitCodeBtn">Submit</button>
+            <div class="referral-status" id="referralStatus"></div>
+          </div>
         </div>
       </div>
       
