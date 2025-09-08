@@ -2173,7 +2173,6 @@ function drawUpgradeStatus(ctx) {
 function triggerScreenShake(intensity = 10, duration = 200) {
   gameState.screenShake.intensity = intensity;
   gameState.screenShake.duration = duration;
-  console.log(`Screen shake triggered: intensity=${intensity}, duration=${duration}`); // Debug log
 }
 
 function updateScreenShake() {
@@ -2187,14 +2186,9 @@ function updateScreenShake() {
       gameState.screenShake.x = (Math.random() - 0.5) * currentIntensity;
       gameState.screenShake.y = (Math.random() - 0.5) * currentIntensity;
       
-      // Debug log every 10th frame to avoid spam
-      if (Math.random() < 0.1) {
-        console.log(`Screen shake active: x=${gameState.screenShake.x.toFixed(2)}, y=${gameState.screenShake.y.toFixed(2)}, intensity=${currentIntensity.toFixed(2)}`);
-      }
     } else {
       gameState.screenShake.x = 0;
       gameState.screenShake.y = 0;
-      console.log('Screen shake ended');
     }
   }
 }
@@ -2271,7 +2265,7 @@ function drawDynamicBackground() {
   for (let i = 0; i < particleCount; i++) {
     const x = (i * 137.5) % GAME_WIDTH; // Golden ratio distribution
     const y = (i * 89.3 + time * (20 + scoreIntensity * 30)) % GAME_HEIGHT;
-    const size = 1 + Math.sin(time + i) * (0.5 + scoreIntensity * 1.5);
+    const size = Math.max(0.5, 1 + Math.sin(time + i) * (0.5 + scoreIntensity * 1.5));
     const alpha = 0.1 + scoreIntensity * 0.4;
     const particleHue = baseHue + (i * 10) % 60;
     
@@ -2304,7 +2298,7 @@ function drawDynamicBackground() {
     for (let i = 0; i < orbCount; i++) {
       const orbX = (i * 200 + time * 30) % GAME_WIDTH;
       const orbY = (i * 150 + time * 40) % GAME_HEIGHT;
-      const orbSize = 20 + Math.sin(time * 2 + i) * 10;
+      const orbSize = Math.max(5, 20 + Math.sin(time * 2 + i) * 10);
       const orbAlpha = (scoreIntensity - 0.6) * 0.8;
       const orbHue = baseHue + 240;
       
