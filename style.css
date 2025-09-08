@@ -1396,13 +1396,24 @@ body {
     
     .modal-buttons {
       display: flex;
+      flex-direction: column;
       gap: 15px;
+      margin-top: 20px;
       justify-content: center;
     }
     
     .modal-buttons .menu-btn {
       flex: 1;
       max-width: 150px;
+    }
+    
+    .modal-buttons .menu-btn.secondary {
+      background: #444;
+      border-color: #666;
+    }
+    
+    .modal-buttons .menu-btn.secondary:hover {
+      background: #555;
     }
     
     /* Time bend effect */

@@ -235,6 +235,7 @@ function hideLoadingScreen() {
     const secondChanceModal = document.getElementById('secondChanceModal');
     const heartsRemaining = document.getElementById('heartsRemaining');
     const useHeartBtn = document.getElementById('useHeartBtn');
+    const watchAdBtn = document.getElementById('watchAdBtn');
     const skipHeartBtn = document.getElementById('skipHeartBtn');
     
 function initGame() {
@@ -1396,6 +1397,7 @@ function setupEventListeners() {
   
   // Second chance modal buttons
   useHeartBtn.addEventListener('click', useHeart);
+  watchAdBtn.addEventListener('click', watchAdForRevive);
   skipHeartBtn.addEventListener('click', proceedToGameOver);
 			
   // Mouse controls for desktop
@@ -1707,6 +1709,14 @@ finalScore.textContent = formatScore(gameState.score);
 
 function showSecondChanceModal() {
     heartsRemaining.textContent = gameState.hearts;
+    
+    // Show/hide heart button based on availability
+    if (gameState.hearts > 0) {
+        useHeartBtn.style.display = 'block';
+    } else {
+        useHeartBtn.style.display = 'none';
+    }
+    
     secondChanceModal.style.display = 'flex';
 }
 
@@ -1715,67 +1725,24 @@ function useHeart() {
         gameState.hearts--;
         secondChanceModal.style.display = 'none';
         
-        // Find safe spawn position (clear of obstacles)
-        const safeY = GAME_HEIGHT - 150; // Spawn higher up
-        let safeX = GAME_WIDTH / 2;
-        
-        // Check for obstacles and find clear space
-        for (let attempt = 0; attempt < 10; attempt++) {
-            const testX = GAME_WIDTH * 0.2 + (Math.random() * GAME_WIDTH * 0.6);
-            let isSafe = true;
-            
-            for (const obstacle of gameState.obstacles) {
-                const dx = testX - obstacle.x;
-                const dy = safeY - obstacle.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < 100) { // Too close to obstacle
-                    isSafe = false;
-                    break;
-                }
-            }
-            
-            if (isSafe) {
-                safeX = testX;
-                break;
-            }
-        }
-        
-        // Revive player at safe position
-        gameState.player.x = safeX;
-        gameState.player.y = safeY;
-        gameState.player.targetX = safeX;
-        gameState.player.targetY = safeY;
-        gameState.player.isAlive = true;
-        gameState.gameActive = true;
-        
-        // Activate immortality for 5 seconds
-        gameState.immortal.active = true;
-        gameState.immortal.duration = 5000; // 5 seconds
-        
-        setTimeout(() => {
-            gameState.immortal.active = false;
-            gameState.immortal.duration = 0;
-        }, 5000);
-        
         // Save updated heart count
         if (currentUser) {
             saveUserData();
         }
         
-        // Continue game loop
-        document.body.classList.add('game-active');
+        revivePlayer();
     }
 }
 
 function proceedToGameOver() {
     secondChanceModal.style.display = 'none';
-    
-    // Continue with normal game over sequence
+
     setTimeout(() => {
         const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
         timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
         const finalScoreInSeconds = (gameState.score / 1000).toFixed(3);
         finalScore.textContent = formatScore(gameState.score);
+
         
         // Calculate collected shards (excluding time bonus)
         const collectedShards = gameState.currentRunShards - gameState.timeBonusShards;
@@ -1841,6 +1808,133 @@ function activatePhantomRelic() {
     createParticleExplosion(gameState.player.x, gameState.player.y, 20, '#f300ff');
   }
 }
+
+// AdMob Plus integration for Cordova
+function showRewardedAd() {
+    return new Promise((resolve, reject) => {
+        // Check if AdMob Plus plugin is available (Cordova environment)
+        if (typeof admob !== 'undefined' && admob.rewardVideo) {
+            console.log('Showing AdMob Plus rewarded ad...');
+            
+            // Show rewarded video ad
+            admob.rewardVideo.show().then(() => {
+                console.log('Ad watched successfully!');
+                resolve(true);
+            }).catch((error) => {
+                console.error('AdMob Plus error:', error);
+                reject(new Error('Ad failed to load'));
+            });
+            
+        } else {
+            // Fallback for web/testing environment
+            console.log('AdMob Plus not available, using placeholder...');
+            
+            // Simulate ad loading and watching (3 seconds)
+            setTimeout(() => {
+                // Simulate 90% success rate for ad completion
+                if (Math.random() > 0.1) {
+                    console.log('Placeholder ad watched successfully!');
+                    resolve(true);
+                } else {
+                    console.log('Placeholder ad failed');
+                    reject(new Error('Ad failed'));
+                }
+            }, 3000);
+        }
+    });
+}
+
+function watchAdForRevive() {
+    // Disable button during ad loading
+    watchAdBtn.disabled = true;
+    watchAdBtn.textContent = 'Loading Ad...';
+    
+    showRewardedAd()
+        .then(() => {
+            // Ad watched successfully - revive without using heart
+            secondChanceModal.style.display = 'none';
+            revivePlayer();
+        })
+        .catch((error) => {
+            // Ad failed - re-enable button
+            watchAdBtn.disabled = false;
+            watchAdBtn.textContent = 'Watch Ad';
+            console.error('Ad failed:', error);
+            
+            // Optional: Show error message to user
+            alert('Ad failed to load. Please try again or use a heart.');
+        });
+}
+
+function revivePlayer() {
+    // Find safe spawn position (clear of obstacles)
+    const safeY = GAME_HEIGHT - 150; // Spawn higher up
+    let safeX = GAME_WIDTH / 2;
+    
+    // Check for obstacles and find clear space
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const testX = GAME_WIDTH * 0.2 + (Math.random() * GAME_WIDTH * 0.6);
+        let isSafe = true;
+        
+        for (const obstacle of gameState.obstacles) {
+            const dx = testX - obstacle.x;
+            const dy = safeY - obstacle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 100) { // Too close to obstacle
+                isSafe = false;
+                break;
+            }
+        }
+        
+        if (isSafe) {
+            safeX = testX;
+            break;
+        }
+    }
+    
+    // Revive player at safe position
+    gameState.player.x = safeX;
+    gameState.player.y = safeY;
+    gameState.player.targetX = safeX;
+    gameState.player.targetY = safeY;
+    gameState.player.isAlive = true;
+    gameState.gameActive = true;
+    
+    // Activate immortality for 5 seconds
+    gameState.immortal.active = true;
+    gameState.immortal.duration = 5000; // 5 seconds
+    
+    setTimeout(() => {
+        gameState.immortal.active = false;
+        gameState.immortal.duration = 0;
+    }, 5000);
+    
+    // Continue game loop
+    document.body.classList.add('game-active');
+}
+
+// Initialize AdMob Plus when device is ready
+function initializeAdMob() {
+    if (typeof admob !== 'undefined') {
+        admob.start().then(() => {
+            console.log('AdMob Plus initialized successfully');
+            
+            // Configure rewarded video
+            admob.rewardVideo.config({
+                id: 'YOUR_REWARDED_AD_UNIT_ID' // Replace with your actual Ad Unit ID
+            });
+            
+            // Load rewarded video
+            admob.rewardVideo.load();
+            
+        }).catch((error) => {
+            console.error('AdMob Plus initialization failed:', error);
+        });
+    }
+}
+
+// Call initialization when Cordova is ready
+document.addEventListener('deviceready', initializeAdMob, false);
     
 function createParticleExplosion(x, y, count, color) {
         // Balanced particle count for smooth performance
