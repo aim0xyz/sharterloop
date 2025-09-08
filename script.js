@@ -149,7 +149,7 @@ function hideLoadingScreen() {
     const referralBtn = document.getElementById('referralBtn');
     const userBadge = document.getElementById('userBadge');
     const retryBtn = document.getElementById('retryBtn');
-    const fractureRetryBtn = document.getElementById('fractureRetryBtn');
+    // const fractureRetryBtn = document.getElementById('fractureRetryBtn'); // Removed - button no longer exists
     const menuBtn = document.getElementById('menuBtn');
     
     const shopScreen = document.getElementById('shopScreen');
@@ -1372,7 +1372,7 @@ function setupEventListeners() {
   dailyCheckInBtn.addEventListener('click', showDailyCheckIn);
   referralBtn.addEventListener('click', showReferral);
   retryBtn.addEventListener('click', () => startGame(gameState.mode));
-  fractureRetryBtn.addEventListener('click', () => startGame('fracture'));
+  // fractureRetryBtn.addEventListener('click', () => startGame('fracture')); // Removed - button no longer exists
   menuBtn.addEventListener('click', () => showMenu());
   backToMenuBtn.addEventListener('click', () => showMenu());
   leaderboardBackBtn.addEventListener('click', () => showMenu());
