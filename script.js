@@ -997,14 +997,12 @@ function updateAuthUI() {
     signUpContainer.style.display = 'none';
     
     // Update user badge in menu
-    userBadge.innerHTML = currentUser.photoURL ? 
-      `<img src="${currentUser.photoURL}" alt="${currentUser.displayName}" style="width: 100%; height: 100%; border-radius: 50%;">` : 
-      (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : '👤');
+    userBadge.textContent = 'PROFILE';
   } else {
     // User is signed out
     signInContainer.style.display = 'block';
     signUpContainer.style.display = 'none';
-    userBadge.textContent = '👤';
+    userBadge.textContent = 'PROFILE';
     authTitle.textContent = 'Sign In';
   }
 }
