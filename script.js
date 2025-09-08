@@ -56,6 +56,7 @@
       timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, baseDuration: 2000, duration: 2000, active: false, lastOrbSpawn: 0 },
       upgrades: { timeBendLevel: 1, shardMagnetLevel: 0, phantomPhaseLevel: 0 },
       hearts: 0,
+      immortal: { active: false, duration: 0 },
       relics: { phantomPhase: false, phantomPhaseUsed: 0 },
       gameActive: false,
       currentRunShards: 0,
@@ -145,6 +146,7 @@ function hideLoadingScreen() {
     const safeModeBtn = document.getElementById('safeModeBtn');
     const fractureModeBtn = document.getElementById('fractureModeBtn');
     const shopBtn = document.getElementById('shopBtn');
+    const gameOverShopBtn = document.querySelector('#gameOverScreen #shopBtn');
     const leaderboardBtn = document.getElementById('leaderboardBtn');
     const dailyCheckInBtn = document.getElementById('dailyCheckInBtn');
     // const referralBtn = document.getElementById('referralBtn'); // Removed - button no longer exists
@@ -1378,6 +1380,7 @@ function setupEventListeners() {
   safeModeBtn.addEventListener('click', () => startGame('safe'));
   fractureModeBtn.addEventListener('click', () => startGame('fracture'));
   shopBtn.addEventListener('click', showShop);
+  if (gameOverShopBtn) gameOverShopBtn.addEventListener('click', showShop);
   leaderboardBtn.addEventListener('click', showLeaderboard);
   dailyCheckInBtn.addEventListener('click', showDailyCheckIn);
   // referralBtn.addEventListener('click', showReferral); // Removed - button no longer exists
@@ -1712,9 +1715,47 @@ function useHeart() {
         gameState.hearts--;
         secondChanceModal.style.display = 'none';
         
-        // Revive player
+        // Find safe spawn position (clear of obstacles)
+        const safeY = GAME_HEIGHT - 150; // Spawn higher up
+        let safeX = GAME_WIDTH / 2;
+        
+        // Check for obstacles and find clear space
+        for (let attempt = 0; attempt < 10; attempt++) {
+            const testX = GAME_WIDTH * 0.2 + (Math.random() * GAME_WIDTH * 0.6);
+            let isSafe = true;
+            
+            for (const obstacle of gameState.obstacles) {
+                const dx = testX - obstacle.x;
+                const dy = safeY - obstacle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 100) { // Too close to obstacle
+                    isSafe = false;
+                    break;
+                }
+            }
+            
+            if (isSafe) {
+                safeX = testX;
+                break;
+            }
+        }
+        
+        // Revive player at safe position
+        gameState.player.x = safeX;
+        gameState.player.y = safeY;
+        gameState.player.targetX = safeX;
+        gameState.player.targetY = safeY;
         gameState.player.isAlive = true;
         gameState.gameActive = true;
+        
+        // Activate immortality for 2 seconds
+        gameState.immortal.active = true;
+        gameState.immortal.duration = 2000; // 2 seconds
+        
+        setTimeout(() => {
+            gameState.immortal.active = false;
+            gameState.immortal.duration = 0;
+        }, 2000);
         
         // Save updated heart count
         if (currentUser) {
@@ -2073,6 +2114,9 @@ function showTimeRewardNotification(totalShards, shardsPerInterval) {
 function checkCollisions() {
   if (!gameState.player.isAlive) return;
   
+  // Skip collision checks if player is immortal
+  if (gameState.immortal.active) return;
+  
   // Cache player bounds for performance
   const hitboxWidth = PLAYER_SIZE * 0.5;
   const hitboxHeight = PLAYER_SIZE * 0.9;
@@ -2123,6 +2167,17 @@ function checkCollisions() {
 function drawPlayerCharacter(ctx, x, y, size, time) {
   ctx.save();
   ctx.translate(x, y);
+  
+  // Apply immortal effect if active
+  if (gameState.immortal.active) {
+    const flickerSpeed = 8; // Fast flicker
+    const alpha = 0.3 + 0.7 * Math.abs(Math.sin(time * flickerSpeed));
+    ctx.globalAlpha = alpha;
+    
+    // Add glowing effect
+    ctx.shadowColor = '#00f3ff';
+    ctx.shadowBlur = 20;
+  }
   
   // Calculate tilt based on both horizontal and vertical movement
   const horizontalTilt = (gameState.player.targetX - x) * 0.005;
