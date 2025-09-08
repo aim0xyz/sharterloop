@@ -48,7 +48,6 @@
       mode: 'safe',
       player: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, targetY: GAME_HEIGHT - 100, size: PLAYER_SIZE, isAlive: true, trail: [] },
       screenShake: { intensity: 0, duration: 0, x: 0, y: 0 },
-      combo: { count: 0, multiplier: 1, lastShardTime: 0 },
       touchPosition: null,
       obstacles: [],
       shardsCollectible: [],
@@ -1836,7 +1835,7 @@ function updateGame() {
 
     
     // Update Shards with improved collection mechanics - use reverse loop
-    const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20);
+    const magnetRadius = gameState.upgrades.shardMagnetLevel > 0 ? 20 + (gameState.upgrades.shardMagnetLevel * 10) : 0;
     const collectionRadius = PLAYER_SIZE / 2 + magnetRadius;
     const collectionRadiusSquared = collectionRadius * collectionRadius; // Avoid Math.sqrt
     
@@ -1860,24 +1859,6 @@ function updateGame() {
             // Haptic feedback for shard collection
             triggerHapticFeedback('light');
             
-            // Combo system
-            const currentTime = Date.now();
-            const timeSinceLastShard = currentTime - gameState.combo.lastShardTime;
-            
-            if (timeSinceLastShard < 2000) { // 2 second combo window
-                gameState.combo.count++;
-                gameState.combo.multiplier = Math.min(5, 1 + Math.floor(gameState.combo.count / 5)); // Max 5x multiplier
-            } else {
-                gameState.combo.count = 1;
-                gameState.combo.multiplier = 1;
-            }
-            
-            gameState.combo.lastShardTime = currentTime;
-            
-            // Apply combo multiplier to score
-            const baseScore = 100;
-            const comboScore = baseScore * gameState.combo.multiplier;
-            gameState.score += comboScore;
             
             // Add screen shake effect for better feedback
             if (gameState.currentRunShards % 5 === 0) {
@@ -1889,15 +1870,6 @@ function updateGame() {
                 triggerScreenShake(8, 100); // More noticeable shake for regular shards
             }
             
-            // Combo visual effects
-            if (gameState.combo.count > 1) {
-                const comboColor = gameState.combo.multiplier >= 3 ? '#ff0000' : '#ffff00';
-                createParticleExplosion(shard.x, shard.y, 8, comboColor);
-                
-                if (gameState.combo.count % 5 === 0) {
-                    triggerScreenShake(12, 150); // Extra shake for combo milestones
-                }
-            }
             
             gameState.shardsCollectible.splice(i, 1);
         } else if (shard.y > GAME_HEIGHT + 20) {
@@ -2078,7 +2050,7 @@ function drawPlayerTrail(ctx) {
 function drawUpgradeEffects(ctx, x, y, size) {
   // Draw magnet effect if shard magnet is upgraded
   if (gameState.upgrades.shardMagnetLevel > 0) {
-    const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20);
+    const magnetRadius = gameState.upgrades.shardMagnetLevel > 0 ? 20 + (gameState.upgrades.shardMagnetLevel * 10) : 0;
     const pulse = Math.sin(Date.now() * 0.008) * 0.2 + 0.3;
     
     ctx.strokeStyle = `rgba(0, 170, 255, ${pulse})`;
@@ -2122,40 +2094,6 @@ function drawUpgradeEffects(ctx, x, y, size) {
   }
 }
 
-function drawComboDisplay(ctx) {
-  if (gameState.combo.count > 1) {
-    const currentTime = Date.now();
-    const timeSinceLastShard = currentTime - gameState.combo.lastShardTime;
-    
-    // Fade out combo display if no recent shards
-    const fadeAlpha = Math.max(0, 1 - (timeSinceLastShard - 1000) / 1000);
-    
-    if (fadeAlpha > 0) {
-      ctx.save();
-      ctx.globalAlpha = fadeAlpha;
-      
-      // Combo text
-      ctx.fillStyle = gameState.combo.multiplier >= 3 ? '#ff0000' : '#ffff00';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#000000';
-      ctx.shadowBlur = 4;
-      
-      const comboText = `${gameState.combo.count}x COMBO!`;
-      ctx.fillText(comboText, GAME_WIDTH / 2, 60);
-      
-      // Multiplier text
-      if (gameState.combo.multiplier > 1) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px Arial';
-        const multiplierText = `${gameState.combo.multiplier}x MULTIPLIER`;
-        ctx.fillText(multiplierText, GAME_WIDTH / 2, 85);
-      }
-      
-      ctx.restore();
-    }
-  }
-}
 
 function drawUpgradeStatus(ctx) {
   const activeUpgrades = [];
@@ -2359,8 +2297,6 @@ function drawGame() {
     const currentTime = gameState.lastFrameTime || Date.now();
     drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, currentTime / 1000);
     
-    // Draw combo display
-    drawComboDisplay(ctx);
     
     // Draw upgrade effects around player
     drawUpgradeEffects(ctx, gameState.player.x, gameState.player.y, gameState.player.size);
