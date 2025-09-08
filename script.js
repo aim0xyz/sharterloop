@@ -48,12 +48,6 @@
       mode: 'safe',
       player: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 100, targetX: GAME_WIDTH / 2, targetY: GAME_HEIGHT - 100, size: PLAYER_SIZE, isAlive: true, trail: [] },
       screenShake: { intensity: 0, duration: 0, x: 0, y: 0 },
-      powerUps: [],
-      activePowerUps: {
-        speedBoost: { active: false, duration: 0, multiplier: 1.5 },
-        magnet: { active: false, duration: 0, radius: 100 },
-        shield: { active: false, duration: 0, hits: 3 }
-      },
       combo: { count: 0, multiplier: 1, lastShardTime: 0 },
       touchPosition: null,
       obstacles: [],
@@ -1788,12 +1782,7 @@ function updateGame() {
     const pathSpeed = basePathSpeed * gameState.speedMultiplier;
 
     // Update Player with smooth movement
-    let lerpSpeed = gameState.mode === 'fracture' ? 0.18 : 0.12; // Slightly slower for smoother movement
-    
-    // Apply speed boost if active
-    if (gameState.activePowerUps.speedBoost.active) {
-      lerpSpeed *= gameState.activePowerUps.speedBoost.multiplier;
-    }
+    const lerpSpeed = gameState.mode === 'fracture' ? 0.18 : 0.12; // Slightly slower for smoother movement
     
     // Horizontal movement
     gameState.player.x += (gameState.player.targetX - gameState.player.x) * lerpSpeed;
@@ -1823,9 +1812,6 @@ function updateGame() {
     const shardSpawnRate = isFracture ? 0.03 : 0.015;
     if (Math.random() < shardSpawnRate * timeFactor) createShard();
     
-    // Spawn power-ups occasionally
-    const powerUpSpawnRate = 0.005; // Very rare
-    if (Math.random() < powerUpSpawnRate * timeFactor) createPowerUp();
 
     // Update Obstacles - use reverse loop to avoid splice issues
     for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
@@ -1848,14 +1834,10 @@ function updateGame() {
         }
     }
 
-    // Update power-ups
-    updatePowerUps();
     
     // Update Shards with improved collection mechanics - use reverse loop
     const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20);
-    const activeMagnetRadius = gameState.activePowerUps.magnet.active ? gameState.activePowerUps.magnet.radius : 0;
-    const totalMagnetRadius = magnetRadius + activeMagnetRadius;
-    const collectionRadius = PLAYER_SIZE / 2 + totalMagnetRadius;
+    const collectionRadius = PLAYER_SIZE / 2 + magnetRadius;
     const collectionRadiusSquared = collectionRadius * collectionRadius; // Avoid Math.sqrt
     
     for (let i = gameState.shardsCollectible.length - 1; i >= 0; i--) {
@@ -1920,22 +1902,6 @@ function updateGame() {
             gameState.shardsCollectible.splice(i, 1);
         } else if (shard.y > GAME_HEIGHT + 20) {
             gameState.shardsCollectible.splice(i, 1);
-        }
-    }
-    
-    // Check power-up collection
-    for (let i = gameState.powerUps.length - 1; i >= 0; i--) {
-        const powerUp = gameState.powerUps[i];
-        powerUp.y += 2 * gameState.speedMultiplier;
-        
-        const distanceSquared = (powerUp.x - gameState.player.x) ** 2 + (powerUp.y - gameState.player.y) ** 2;
-        const collectionRadiusSquared = (PLAYER_SIZE / 2 + powerUp.size) ** 2;
-        
-        if (distanceSquared < collectionRadiusSquared) {
-            activatePowerUp(powerUp.type);
-            gameState.powerUps.splice(i, 1);
-        } else if (powerUp.y > GAME_HEIGHT + 20) {
-            gameState.powerUps.splice(i, 1);
         }
     }
 
@@ -2038,25 +2004,10 @@ function checkCollisions() {
         }
         return;
       } else {
-        // Check if shield is active
-        if (gameState.activePowerUps.shield.active && gameState.activePowerUps.shield.hits > 0) {
-          gameState.activePowerUps.shield.hits--;
-          createParticleExplosion(obs.x + obs.width/2, obs.y + obs.height/2, 20, '#ff00aa');
-          triggerHapticFeedback('medium');
-          triggerScreenShake(8, 150);
-          gameState.obstacles.splice(i, 1);
-          
-          if (gameState.activePowerUps.shield.hits <= 0) {
-            gameState.activePowerUps.shield.active = false;
-            gameState.activePowerUps.shield.duration = 0;
-          }
-          return;
-        } else {
-          triggerHapticFeedback('heavy'); // Strong feedback for collision
-          triggerScreenShake(25, 400); // Very strong screen shake on collision
-          endGame();
-          return;
-        }
+        triggerHapticFeedback('heavy'); // Strong feedback for collision
+        triggerScreenShake(25, 400); // Very strong screen shake on collision
+        endGame();
+        return;
       }
     }
   }
@@ -2124,38 +2075,10 @@ function drawPlayerTrail(ctx) {
   return;
 }
 
-function drawPowerUpEffects(ctx, x, y, size) {
-  // Draw shield effect
-  if (gameState.activePowerUps.shield.active) {
-    const shieldRadius = size + 15;
-    const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
-    
-    ctx.strokeStyle = `rgba(255, 0, 170, ${pulse * 0.8})`;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#ff00aa';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(x, y, shieldRadius, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  
-  // Draw speed boost effect
-  if (gameState.activePowerUps.speedBoost.active) {
-    const speedRadius = size + 10;
-    const pulse = Math.sin(Date.now() * 0.02) * 0.4 + 0.6;
-    
-    ctx.strokeStyle = `rgba(255, 170, 0, ${pulse * 0.6})`;
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#ffaa00';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(x, y, speedRadius, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  
-  // Draw magnet effect
-  if (gameState.activePowerUps.magnet.active) {
-    const magnetRadius = gameState.activePowerUps.magnet.radius;
+function drawUpgradeEffects(ctx, x, y, size) {
+  // Draw magnet effect if shard magnet is upgraded
+  if (gameState.upgrades.shardMagnetLevel > 0) {
+    const magnetRadius = 20 + (gameState.upgrades.shardMagnetLevel * 20);
     const pulse = Math.sin(Date.now() * 0.008) * 0.2 + 0.3;
     
     ctx.strokeStyle = `rgba(0, 170, 255, ${pulse})`;
@@ -2165,6 +2088,37 @@ function drawPowerUpEffects(ctx, x, y, size) {
     ctx.beginPath();
     ctx.arc(x, y, magnetRadius, 0, Math.PI * 2);
     ctx.stroke();
+  }
+  
+  // Draw time bend effect if active
+  if (gameState.timeBend.active) {
+    const timeRadius = size + 15;
+    const pulse = Math.sin(Date.now() * 0.02) * 0.4 + 0.6;
+    
+    ctx.strokeStyle = `rgba(255, 255, 0, ${pulse * 0.8})`;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(x, y, timeRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  // Draw phantom phase effect if available
+  if (gameState.upgrades.phantomPhaseLevel > 0) {
+    const availableUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+    if (availableUses > 0) {
+      const phantomRadius = size + 8;
+      const pulse = Math.sin(Date.now() * 0.015) * 0.3 + 0.4;
+      
+      ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(x, y, phantomRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 }
 
@@ -2199,6 +2153,80 @@ function drawComboDisplay(ctx) {
       }
       
       ctx.restore();
+    }
+  }
+}
+
+function drawUpgradeStatus(ctx) {
+  const activeUpgrades = [];
+  
+  // Check which upgrades are active/available
+  if (gameState.timeBend.active) {
+    activeUpgrades.push({ type: 'timeBend', symbol: '⏰', color: '#ffff00', duration: gameState.timeBend.duration, maxDuration: 2000 });
+  }
+  if (gameState.upgrades.shardMagnetLevel > 0) {
+    activeUpgrades.push({ type: 'magnet', symbol: '🧲', color: '#00aaff', level: gameState.upgrades.shardMagnetLevel });
+  }
+  if (gameState.upgrades.phantomPhaseLevel > 0) {
+    const availableUses = gameState.upgrades.phantomPhaseLevel - gameState.relics.phantomPhaseUsed;
+    if (availableUses > 0) {
+      activeUpgrades.push({ type: 'phantom', symbol: '👻', color: '#ffffff', uses: availableUses });
+    }
+  }
+  
+  // Draw active upgrade indicators
+  for (let i = 0; i < activeUpgrades.length; i++) {
+    const upgrade = activeUpgrades[i];
+    const x = 20 + i * 60;
+    const y = 20;
+    
+    // Background circle
+    ctx.fillStyle = upgrade.color;
+    ctx.shadowColor = upgrade.color;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Symbol
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 2;
+    ctx.fillText(upgrade.symbol, x, y);
+    
+    // Duration bar for time bend
+    if (upgrade.type === 'timeBend' && upgrade.duration !== undefined) {
+      const progress = upgrade.duration / upgrade.maxDuration;
+      const barWidth = 30;
+      const barHeight = 4;
+      
+      // Background bar
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 0;
+      ctx.fillRect(x - barWidth/2, y + 25, barWidth, barHeight);
+      
+      // Progress bar
+      ctx.fillStyle = upgrade.color;
+      ctx.fillRect(x - barWidth/2, y + 25, barWidth * progress, barHeight);
+    }
+    
+    // Level indicator for magnet
+    if (upgrade.type === 'magnet' && upgrade.level !== undefined) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${upgrade.level}`, x, y + 30);
+    }
+    
+    // Uses indicator for phantom
+    if (upgrade.type === 'phantom' && upgrade.uses !== undefined) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${upgrade.uses}`, x, y + 30);
     }
   }
 }
@@ -2331,11 +2359,14 @@ function drawGame() {
     const currentTime = gameState.lastFrameTime || Date.now();
     drawPlayerCharacter(ctx, gameState.player.x, gameState.player.y, gameState.player.size, currentTime / 1000);
     
-    // Draw power-up effects around player
-    drawPowerUpEffects(ctx, gameState.player.x, gameState.player.y, gameState.player.size);
-    
     // Draw combo display
     drawComboDisplay(ctx);
+    
+    // Draw upgrade effects around player
+    drawUpgradeEffects(ctx, gameState.player.x, gameState.player.y, gameState.player.size);
+    
+    // Draw upgrade status
+    drawUpgradeStatus(ctx);
   }
   
   // Draw obstacles with minimal shadow effects for better performance
@@ -2362,38 +2393,6 @@ function drawGame() {
     ctx.shadowBlur = 4; // Further reduced shadow blur
     ctx.beginPath(); 
     ctx.arc(shard.x, shard.y, 10, 0, Math.PI * 2); 
-    ctx.fill();
-  }
-  
-  // Draw power-ups
-  for (let i = 0; i < gameState.powerUps.length; i++) {
-    const powerUp = gameState.powerUps[i];
-    let color = '#00ff00'; // Default green
-    
-    switch(powerUp.type) {
-      case 'speedBoost':
-        color = '#ffaa00'; // Orange
-        break;
-      case 'magnet':
-        color = '#00aaff'; // Blue
-        break;
-      case 'shield':
-        color = '#ff00aa'; // Pink
-        break;
-    }
-    
-    ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(powerUp.x, powerUp.y, powerUp.size, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Add pulsing effect
-    const pulse = Math.sin(Date.now() * 0.005) * 0.2 + 0.8;
-    ctx.fillStyle = `rgba(255, 255, 255, ${pulse * 0.5})`;
-    ctx.beginPath();
-    ctx.arc(powerUp.x, powerUp.y, powerUp.size * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
   
@@ -2614,68 +2613,6 @@ function createShard() {
   });
 }
 
-// Power-up system
-function createPowerUp() {
-  const startY = -20;
-  const startX = Math.random() * (GAME_WIDTH - 20) + 10;
-  const types = ['speedBoost', 'magnet', 'shield'];
-  const type = types[Math.floor(Math.random() * types.length)];
-  
-  gameState.powerUps.push({
-    x: startX,
-    y: startY,
-    type: type,
-    size: 15,
-    collected: false
-  });
-}
-
-function activatePowerUp(type) {
-  switch(type) {
-    case 'speedBoost':
-      gameState.activePowerUps.speedBoost.active = true;
-      gameState.activePowerUps.speedBoost.duration = 5000; // 5 seconds
-      break;
-    case 'magnet':
-      gameState.activePowerUps.magnet.active = true;
-      gameState.activePowerUps.magnet.duration = 8000; // 8 seconds
-      break;
-    case 'shield':
-      gameState.activePowerUps.shield.active = true;
-      gameState.activePowerUps.shield.duration = 10000; // 10 seconds
-      gameState.activePowerUps.shield.hits = 3;
-      break;
-  }
-  
-  // Visual feedback
-  createParticleExplosion(gameState.player.x, gameState.player.y, 20, '#00ff00');
-  triggerScreenShake(10, 150);
-  triggerHapticFeedback('success');
-}
-
-function updatePowerUps() {
-  // Update active power-ups
-  Object.keys(gameState.activePowerUps).forEach(key => {
-    const powerUp = gameState.activePowerUps[key];
-    if (powerUp.active && powerUp.duration > 0) {
-      powerUp.duration -= 16; // Assuming 60fps
-      if (powerUp.duration <= 0) {
-        powerUp.active = false;
-        powerUp.duration = 0;
-      }
-    }
-  });
-  
-  // Update power-up positions
-  for (let i = gameState.powerUps.length - 1; i >= 0; i--) {
-    const powerUp = gameState.powerUps[i];
-    powerUp.y += 2 * gameState.speedMultiplier;
-    
-    if (powerUp.y > GAME_HEIGHT + 20) {
-      gameState.powerUps.splice(i, 1);
-    }
-  }
-}
     
 // Smooth game loop without frame rate limiting
 function gameLoop(currentTime) {
