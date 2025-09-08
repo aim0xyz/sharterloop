@@ -1779,10 +1779,10 @@ function updateGame() {
         shardValue.textContent = gameState.currentRunShards;
     }
 
-    // Time bend orb spawning - 10% chance every 5 seconds
+    // Time bend orb spawning - 15% chance every 5 seconds
     const timeBendOrbInterval = 5000; // 5 seconds in milliseconds
     if (currentTime - gameState.timeBend.lastOrbSpawn >= timeBendOrbInterval) {
-        if (Math.random() < 0.1) { // 10% chance
+        if (Math.random() < 0.15) { // 15% chance
             createTimeBendOrb();
         }
         gameState.timeBend.lastOrbSpawn = currentTime;
