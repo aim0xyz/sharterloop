@@ -2229,97 +2229,84 @@ function drawTouchIndicator(ctx) {
 }
 
 function drawDynamicBackground() {
-  // Clear canvas with dynamic background
-  const scoreIntensity = Math.min(1, gameState.score / 5000); // More sensitive to score changes
+  // Clear canvas with smooth level-based background
   const time = Date.now() * 0.001;
   
-  // Create multiple gradient layers for more dramatic effect
-  const gradient1 = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-  const gradient2 = ctx.createRadialGradient(GAME_WIDTH/2, GAME_HEIGHT/2, 0, GAME_WIDTH/2, GAME_HEIGHT/2, Math.max(GAME_WIDTH, GAME_HEIGHT));
+  // Calculate level progression (every 2000 score = new level)
+  const level = Math.floor(gameState.score / 2000);
+  const levelProgress = (gameState.score % 2000) / 2000; // 0-1 within current level
+  const totalLevels = 10; // Maximum levels before it stabilizes
   
-  // Base colors that shift dramatically with score
-  const baseHue = 240 + scoreIntensity * 180; // Blue to purple to red to orange
-  const saturation = 30 + scoreIntensity * 50; // 30% to 80% saturation
-  const lightness = 8 + scoreIntensity * 20; // 8% to 28% lightness
+  // Smooth interpolation between levels
+  const currentLevel = Math.min(level, totalLevels - 1);
+  const nextLevel = Math.min(level + 1, totalLevels - 1);
   
-  // Primary gradient
-  gradient1.addColorStop(0, `hsl(${baseHue}, ${saturation}%, ${lightness}%)`);
-  gradient1.addColorStop(0.5, `hsl(${baseHue + 30}, ${saturation + 10}%, ${lightness + 5}%)`);
-  gradient1.addColorStop(1, `hsl(${baseHue + 60}, ${saturation + 20}%, ${lightness + 10}%)`);
+  // Define level colors (dark, non-interfering with gameplay)
+  const levelColors = [
+    { hue: 240, sat: 15, light: 5 },   // Level 0: Deep blue
+    { hue: 250, sat: 18, light: 6 },   // Level 1: Darker purple-blue
+    { hue: 260, sat: 20, light: 7 },   // Level 2: Purple
+    { hue: 270, sat: 22, light: 8 },   // Level 3: Dark purple
+    { hue: 280, sat: 24, light: 9 },   // Level 4: Purple-pink
+    { hue: 290, sat: 26, light: 10 },  // Level 5: Dark pink
+    { hue: 300, sat: 28, light: 11 },  // Level 6: Pink
+    { hue: 310, sat: 30, light: 12 },  // Level 7: Pink-red
+    { hue: 320, sat: 32, light: 13 },  // Level 8: Dark red
+    { hue: 330, sat: 34, light: 14 }   // Level 9: Red (final level)
+  ];
   
-  // Secondary radial gradient for depth
-  gradient2.addColorStop(0, `hsla(${baseHue + 90}, ${saturation}%, ${lightness + 15}%, ${scoreIntensity * 0.3})`);
-  gradient2.addColorStop(0.7, `hsla(${baseHue + 120}, ${saturation + 15}%, ${lightness + 10}%, ${scoreIntensity * 0.2})`);
-  gradient2.addColorStop(1, `hsla(${baseHue + 150}, ${saturation + 25}%, ${lightness + 5}%, 0)`);
+  // Interpolate between current and next level
+  const currentColor = levelColors[currentLevel];
+  const nextColor = levelColors[nextLevel];
   
-  // Draw primary background
-  ctx.fillStyle = gradient1;
+  const hue = currentColor.hue + (nextColor.hue - currentColor.hue) * levelProgress;
+  const sat = currentColor.sat + (nextColor.sat - currentColor.sat) * levelProgress;
+  const light = currentColor.light + (nextColor.light - currentColor.light) * levelProgress;
+  
+  // Create subtle gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+  gradient.addColorStop(0, `hsl(${hue}, ${sat}%, ${light}%)`);
+  gradient.addColorStop(0.5, `hsl(${hue + 5}, ${sat + 2}%, ${light + 1}%)`);
+  gradient.addColorStop(1, `hsl(${hue + 10}, ${sat + 4}%, ${light + 2}%)`);
+  
+  // Draw background
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   
-  // Draw secondary gradient for depth
-  ctx.fillStyle = gradient2;
-  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-  
-  // Add animated background particles that increase with score
-  const particleCount = Math.floor(scoreIntensity * 50) + 10;
+  // Add subtle particles that increase with level
+  const particleCount = Math.min(20, 5 + level * 2);
   for (let i = 0; i < particleCount; i++) {
-    const x = (i * 137.5) % GAME_WIDTH; // Golden ratio distribution
-    const y = (i * 89.3 + time * (20 + scoreIntensity * 30)) % GAME_HEIGHT;
-    const size = Math.max(0.5, 1 + Math.sin(time + i) * (0.5 + scoreIntensity * 1.5));
-    const alpha = 0.1 + scoreIntensity * 0.4;
-    const particleHue = baseHue + (i * 10) % 60;
+    const x = (i * 137.5) % GAME_WIDTH;
+    const y = (i * 89.3 + time * 10) % GAME_HEIGHT;
+    const size = Math.max(0.5, 1 + Math.sin(time + i) * 0.3);
+    const alpha = Math.min(0.15, 0.05 + level * 0.01);
     
-    ctx.fillStyle = `hsla(${particleHue}, 70%, 80%, ${alpha})`;
+    ctx.fillStyle = `hsla(${hue + 60}, 40%, 60%, ${alpha})`;
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
   }
   
-  // Add energy waves that start earlier and get more intense
-  if (scoreIntensity > 0.2) {
-    const waveCount = Math.floor(scoreIntensity * 5) + 1;
-    for (let i = 0; i < waveCount; i++) {
-      const waveY = (time * (50 + scoreIntensity * 100) + i * 80) % GAME_HEIGHT;
-      const waveAlpha = scoreIntensity * 0.6;
-      const waveHue = baseHue + 180;
+  // Add subtle energy lines at higher levels
+  if (level >= 3) {
+    const lineCount = Math.min(3, Math.floor((level - 2) / 2));
+    for (let i = 0; i < lineCount; i++) {
+      const lineY = (time * 20 + i * 150) % GAME_HEIGHT;
+      const lineAlpha = Math.min(0.1, (level - 2) * 0.02);
       
-      ctx.strokeStyle = `hsla(${waveHue}, 80%, 70%, ${waveAlpha})`;
-      ctx.lineWidth = 2 + scoreIntensity * 3;
+      ctx.strokeStyle = `hsla(${hue + 120}, 50%, 70%, ${lineAlpha})`;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, waveY);
-      ctx.lineTo(GAME_WIDTH, waveY);
+      ctx.moveTo(0, lineY);
+      ctx.lineTo(GAME_WIDTH, lineY);
       ctx.stroke();
     }
   }
   
-  // Add pulsing energy orbs at high scores
-  if (scoreIntensity > 0.6) {
-    const orbCount = Math.floor(scoreIntensity * 3) + 1;
-    for (let i = 0; i < orbCount; i++) {
-      const orbX = (i * 200 + time * 30) % GAME_WIDTH;
-      const orbY = (i * 150 + time * 40) % GAME_HEIGHT;
-      const orbSize = Math.max(5, 20 + Math.sin(time * 2 + i) * 10);
-      const orbAlpha = (scoreIntensity - 0.6) * 0.8;
-      const orbHue = baseHue + 240;
-      
-      // Outer glow
-      ctx.fillStyle = `hsla(${orbHue}, 90%, 80%, ${orbAlpha * 0.3})`;
-      ctx.beginPath();
-      ctx.arc(orbX, orbY, orbSize * 2, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Inner core
-      ctx.fillStyle = `hsla(${orbHue}, 100%, 90%, ${orbAlpha})`;
-      ctx.beginPath();
-      ctx.arc(orbX, orbY, orbSize, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  
-  // Add screen distortion effect at very high scores
-  if (scoreIntensity > 0.8) {
-    const distortionIntensity = (scoreIntensity - 0.8) * 5;
-    ctx.fillStyle = `rgba(255, 255, 255, ${distortionIntensity * 0.1})`;
+  // Add very subtle glow effect at highest levels
+  if (level >= 7) {
+    const glowAlpha = Math.min(0.05, (level - 6) * 0.01);
+    ctx.fillStyle = `hsla(${hue + 180}, 60%, 80%, ${glowAlpha})`;
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 }
