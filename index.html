@@ -130,7 +130,33 @@
         </div>
         <button class="buy-btn" id="buyRelicBtn">Upgrade</button>
       </div>
+      <div class="upgrade-card">
+        <div class="upgrade-header">
+          <div class="upgrade-title">Hearts</div>
+          <div class="upgrade-cost" id="heartCost">500 ✦</div>
+        </div>
+        <div class="upgrade-desc">Get a second chance when you die. Continue from where you died instead of game over.</div>
+        <div class="upgrade-level">
+            <span>Current Hearts: <span id="heartCount">0</span></span>
+        </div>
+        <button class="buy-btn" id="buyHeartBtn">Buy Heart</button>
+      </div>
       <button class="menu-btn" id="backToMenuBtn" style="margin-top: 20px;">Back to Main Menu</button>
+    </div>
+    
+    <!-- Second Chance Modal -->
+    <div id="secondChanceModal" style="display: none;">
+      <div class="modal-content">
+        <h2>💔 You Died!</h2>
+        <p>Use a heart to continue from where you died?</p>
+        <div class="heart-info">
+          <span>Hearts remaining: <span id="heartsRemaining">0</span></span>
+        </div>
+        <div class="modal-buttons">
+          <button class="menu-btn" id="useHeartBtn">Use Heart ❤️</button>
+          <button class="menu-btn" id="skipHeartBtn">Game Over</button>
+        </div>
+      </div>
     </div>
     
     <div id="leaderboardScreen">

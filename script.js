@@ -55,6 +55,7 @@
       particles: [],
       timeBend: { maxUses: 1, currentUses: 1, cooldown: 0, maxCooldown: 5000, baseDuration: 2000, duration: 2000, active: false, lastOrbSpawn: 0 },
       upgrades: { timeBendLevel: 1, shardMagnetLevel: 0, phantomPhaseLevel: 0 },
+      hearts: 0,
       relics: { phantomPhase: false, phantomPhaseUsed: 0 },
       gameActive: false,
       currentRunShards: 0,
@@ -224,6 +225,15 @@ function hideLoadingScreen() {
     const upgradeTimeBendBtn = document.getElementById('upgradeTimeBendBtn');
     const upgradeMagnetBtn = document.getElementById('upgradeMagnetBtn');
     const buyRelicBtn = document.getElementById('buyRelicBtn');
+    const buyHeartBtn = document.getElementById('buyHeartBtn');
+    const heartCount = document.getElementById('heartCount');
+    const heartCost = document.getElementById('heartCost');
+    
+    // Second chance modal elements
+    const secondChanceModal = document.getElementById('secondChanceModal');
+    const heartsRemaining = document.getElementById('heartsRemaining');
+    const useHeartBtn = document.getElementById('useHeartBtn');
+    const skipHeartBtn = document.getElementById('skipHeartBtn');
     
 function initGame() {
   // Show loading screen immediately
@@ -1018,6 +1028,7 @@ function loadUserData() {
         gameState.upgrades.timeBendLevel = userData.upgrades?.timeBendLevel || 1;
         gameState.upgrades.shardMagnetLevel = userData.upgrades?.shardMagnetLevel || 0;
         gameState.upgrades.phantomPhaseLevel = userData.upgrades?.phantomPhaseLevel || 0;
+        gameState.hearts = userData.hearts || 0;
         gameState.relics.phantomPhase = userData.upgrades?.phantomPhaseLevel > 0;
         gameState.highScore = userData.highScore || 0;
         gameState.dailyCheckIn = userData.dailyCheckIn || { lastCheckIn: null, streak: 0, maxStreak: 0 };
@@ -1134,6 +1145,7 @@ function saveUserData() {
     totalShards: gameState.totalShards,
     highScore: gameState.highScore,
     totalShardsCollected: gameState.totalShardsCollected || gameState.totalShards,
+    hearts: gameState.hearts,
     upgrades: {
       timeBendLevel: gameState.upgrades.timeBendLevel,
       shardMagnetLevel: gameState.upgrades.shardMagnetLevel,
@@ -1377,6 +1389,11 @@ function setupEventListeners() {
   upgradeTimeBendBtn.addEventListener('click', purchaseTimeBend);
   upgradeMagnetBtn.addEventListener('click', purchaseMagnet);
   buyRelicBtn.addEventListener('click', purchasePhantomRelic);
+  buyHeartBtn.addEventListener('click', purchaseHeart);
+  
+  // Second chance modal buttons
+  useHeartBtn.addEventListener('click', useHeart);
+  skipHeartBtn.addEventListener('click', proceedToGameOver);
 			
   // Mouse controls for desktop
   canvas.addEventListener('mousedown', (e) => {
@@ -1574,6 +1591,11 @@ function updateShopUI() {
         phantomCostEl.textContent = `${phantomCost} ✦`;
         buyRelicBtn.disabled = gameState.totalShards < phantomCost;
         buyRelicBtn.textContent = phantomLevel > 0 ? "Upgrade" : "Purchase";
+        
+        // Update hearts display
+        heartCount.textContent = gameState.hearts;
+        heartCost.textContent = "500 ✦";
+        buyHeartBtn.disabled = gameState.totalShards < 500;
     }
 
 function purchaseTimeBend() {
@@ -1619,12 +1641,31 @@ function purchasePhantomRelic() {
         }
     }
 
+function purchaseHeart() {
+    const cost = 500;
+    if (gameState.totalShards >= cost) {
+        gameState.totalShards -= cost;
+        gameState.hearts++;
+        updateShopUI();
+        
+        if (currentUser) {
+            saveUserData();
+        }
+    }
+}
+
 function endGame() {
   document.body.classList.remove('game-active');
         if (!gameState.player.isAlive) return;
         gameState.gameActive = false;
         gameState.player.isAlive = false;
         createParticleExplosion(gameState.player.x, gameState.player.y, 40, '#00f3ff');
+        
+        // Check if player has hearts for second chance
+        if (gameState.hearts > 0) {
+            showSecondChanceModal();
+            return;
+        }
         
         setTimeout(() => {
             const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
@@ -1660,6 +1701,64 @@ finalScore.textContent = formatScore(gameState.score);
             setTimeout(() => gameOverScreen.style.opacity = '1', 50);
         }, 800);
     }
+
+function showSecondChanceModal() {
+    heartsRemaining.textContent = gameState.hearts;
+    secondChanceModal.style.display = 'flex';
+}
+
+function useHeart() {
+    if (gameState.hearts > 0) {
+        gameState.hearts--;
+        secondChanceModal.style.display = 'none';
+        
+        // Revive player
+        gameState.player.isAlive = true;
+        gameState.gameActive = true;
+        
+        // Save updated heart count
+        if (currentUser) {
+            saveUserData();
+        }
+        
+        // Continue game loop
+        document.body.classList.add('game-active');
+    }
+}
+
+function proceedToGameOver() {
+    secondChanceModal.style.display = 'none';
+    
+    // Continue with normal game over sequence
+    setTimeout(() => {
+        const time = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+        timeSurvived.textContent = `${Math.floor(time/60)}:${(time%60).toString().padStart(2, '0')}`;
+        const finalScoreInSeconds = (gameState.score / 1000).toFixed(3);
+        finalScore.textContent = formatScore(gameState.score);
+        
+        // Calculate collected shards (excluding time bonus)
+        const collectedShards = gameState.currentRunShards - gameState.timeBonusShards;
+        shardsCollected.textContent = collectedShards;
+        timeBonusShards.textContent = gameState.timeBonusShards;
+        
+        // Update high score if needed
+        if (gameState.score > gameState.highScore) {
+            gameState.highScore = gameState.score;
+        }
+        
+        // Add shards to total
+        gameState.totalShards += gameState.currentRunShards;
+        gameState.totalShardsCollected += gameState.currentRunShards;
+        
+        // Save game data if user is logged in
+        if (currentUser) {
+            saveUserData();
+        }
+        
+        gameOverScreen.style.display = 'flex';
+        setTimeout(() => gameOverScreen.style.opacity = '1', 50);
+    }, 800);
+}
     
 function activateTimeBend() {
       if (gameState.timeBend.currentUses > 0) {
